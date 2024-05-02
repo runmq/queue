@@ -1,0 +1,19 @@
+{
+  "name": "runmq",
+  "version": "0.0.1",
+  "description": "RunMQ - A Pioneering message queue & batch processing for Node.js. Redefining task management like never before",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iifawzi/RunMQ.git"
+  },
+  "author": "https://github.com/iifawzi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/iifawzi/RunMQ/issues"
+  },
+  "homepage": "https://github.com/iifawzi/RunMQ#readme"
+}
