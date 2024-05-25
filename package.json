@@ -8,12 +8,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/iifawzi/RunMQ.git"
+    "url": "git+https://github.com/runmq/queue.git"
   },
   "author": "https://github.com/iifawzi",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/iifawzi/RunMQ/issues"
+    "url": "https://github.com/runmq/queue/issues"
   },
-  "homepage": "https://github.com/iifawzi/RunMQ#readme"
+  "homepage": "https://github.com/runmq/queue#readme"
 }
