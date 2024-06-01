@@ -38,7 +38,7 @@ export interface IClientConnector<K> {
     consumerId: string,
     count: number,
     block: number
-  ): Promise<any>;
+  ): Promise<unknown>; // TODO:: improve type
 
   /**
    * Acknowledges a message in a consumer group as processed.
@@ -74,7 +74,7 @@ export interface IClientConnector<K> {
    * @param data - The data to add to the queue.
    * @returns A promise that resolves when the data is added.
    */
-  add(queue: string, data: any): Promise<void>;
+  add(queue: string, data: unknown): Promise<void>;
 
   /**
    * Adds data atomically to the specified queue and additional queues.
@@ -83,7 +83,7 @@ export interface IClientConnector<K> {
    * @param data - The data to add to the queues.
    * @returns A promise that resolves when the data is added.
    */
-  addAtomic(queue: string, additionalQueues: string[], data: any): Promise<void>;
+  addAtomic(queue: string, additionalQueues: string[], data: unknown): Promise<void>;
 
   /**
    * Adds multiple data entries to the specified queue.
@@ -91,7 +91,7 @@ export interface IClientConnector<K> {
    * @param data - An array of data entries to add to the queue.
    * @returns A promise that resolves when the data is added.
    */
-  bulk(queue: string, data: any[]): Promise<void>;
+  bulk(queue: string, data: unknown[]): Promise<void>;
 
   /**
    * Adds multiple data entries atomically to the specified queue and additional queues.
@@ -100,7 +100,7 @@ export interface IClientConnector<K> {
    * @param data - An array of data entries to add to the queues.
    * @returns A promise that resolves when the data is added.
    */
-  bulkAtomic(queue: string, additionalQueues: string[], data: any[]): Promise<void>;
+  bulkAtomic(queue: string, additionalQueues: string[], data: unknown[]): Promise<void>;
 
   /**
    * Sets a heartbeat for the specified worker.

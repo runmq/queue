@@ -1,5 +1,4 @@
 import { IClientConnector } from "@core/types";
-
 /**
  * AbstractProducer is an abstract class that provides basic functionalities for adding data to queues.
  * It ensures atomic operations if needed and handles graceful shutdown on process termination signals.
@@ -10,10 +9,7 @@ export default abstract class AbstractProducer<K> {
    * @param name - The name of the queue.
    * @param client - An instance of IClientConnector to interact with the queue.
    */
-  constructor(
-    private name: string,
-    private client: IClientConnector<K>
-  ) {
+  constructor(private name: string, private client: IClientConnector<K>) {
     process.once("SIGINT", this.handleShutdown.bind(this));
     process.once("SIGTERM", this.handleShutdown.bind(this));
   }
@@ -24,7 +20,7 @@ export default abstract class AbstractProducer<K> {
    * @param additionalQueues - Optional. Additional queues to which the data should be added atomically.
    * @returns A promise that resolves when the data has been added.
    */
-  public async add(data: any, additionalQueues?: string[]) {
+  public async add(data: unknown, additionalQueues?: string[]) {
     await this.client.create();
     if (additionalQueues && additionalQueues.length) {
       await this.client.addAtomic(this.name, additionalQueues, data);
@@ -39,7 +35,7 @@ export default abstract class AbstractProducer<K> {
    * @param additionalQueues - Optional. Additional queues to which the data should be added atomically.
    * @returns A promise that resolves when the data has been added.
    */
-  public async bulk(data: any[], additionalQueues: string[] = []) {
+  public async bulk(data: unknown[], additionalQueues: string[] = []) {
     await this.client.create();
     if (additionalQueues.length) {
       await this.client.bulkAtomic(this.name, additionalQueues, data);

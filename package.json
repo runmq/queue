@@ -4,7 +4,8 @@
   "description": "RunMQ - A Pioneering message queue & batch processing solution for Node.js. Redefining task management like never before",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix ."
   },
   "_moduleAliases": {
     "@": "dist"
@@ -19,7 +20,14 @@
     "url": "https://github.com/runmq/queue/issues"
   },
   "homepage": "https://github.com/runmq/queue#readme",
+  "dependencies": {
+    "ioredis": "^5.4.1"
+  },
   "devDependencies": {
-    "@types/node": "^20.12.13"
+    "@eslint/js": "^9.4.0",
+    "@types/node": "^20.12.13",
+    "eslint": "^9.4.0",
+    "globals": "^15.3.0",
+    "typescript-eslint": "^7.11.0"
   }
 }
