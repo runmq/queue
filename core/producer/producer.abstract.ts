@@ -12,7 +12,7 @@ export default abstract class AbstractProducer<K> {
    * @param client - An instance of IClientConnector to interact with the queue.
    */
   constructor(private name: string, private client: IClientConnector<K>) {
-    this.queueName = CONSTANTS.QUEUE_PREFIX + name;
+    this.queueName = CONSTANTS.QUEUE_PREFIX + this.name;
     process.once("SIGINT", this.handleShutdown.bind(this));
     process.once("SIGTERM", this.handleShutdown.bind(this));
   }
