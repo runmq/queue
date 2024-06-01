@@ -1,1 +1,1 @@
-export { default as Producer } from "./producer.redisio";
+export { default as Producer } from "./producer.redis";
