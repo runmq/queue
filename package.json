@@ -6,6 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "_moduleAliases": {
+    "@": "dist"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/runmq/queue.git"
@@ -15,5 +18,8 @@
   "bugs": {
     "url": "https://github.com/runmq/queue/issues"
   },
-  "homepage": "https://github.com/runmq/queue#readme"
+  "homepage": "https://github.com/runmq/queue#readme",
+  "devDependencies": {
+    "@types/node": "^20.12.13"
+  }
 }
