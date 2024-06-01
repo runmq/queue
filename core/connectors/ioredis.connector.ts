@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { IClientConnector, ProducerConfigs } from "@core/types";
+import { GetPrefixedQueue } from "@core/helpers";
 import { Redis } from "ioredis";
 
 export class RedisIOClient implements IClientConnector<Redis> {
@@ -32,28 +33,29 @@ export class RedisIOClient implements IClientConnector<Redis> {
     return this.client;
   }
 
-  async add(queue: string, data: unknown): Promise<string> {
+  async add(queue: string, data: string): Promise<string> {
     if (this.client.status === "wait") {
       await this.client.connect();
     }
-    // it will never return null given NOMKSTREAM is not set.
-    return (await this.client.xadd(
-      queue,
-      "*",
-      "data",
-      JSON.stringify(data)
-    )) as unknown as string;
+    const clientResponse = await this.client.xadd(queue, "*", "data", data);
+    return clientResponse as string;
   }
 
   async addAtomic(
     queue: string,
     additionalQueues: string[],
-    data: unknown
+    data: string
   ): Promise<string[]> {
     if (this.client.status === "wait") {
       await this.client.connect();
     }
-    throw new Error("Method not implemented.");
+    const multi = this.client.multi();
+    multi.xadd(queue, "*", "data", data);
+    additionalQueues.forEach((additionalQueueName: string) => {
+      multi.xadd(GetPrefixedQueue(additionalQueueName), "*", "data", data);
+    });
+    const clientMultiResponse = await multi.exec();
+    return clientMultiResponse?.map((res) => res[1]) as string[];
   }
 
   async bulk(queue: string, data: unknown[]): Promise<string[]> {

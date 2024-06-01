@@ -1,4 +1,4 @@
-import { CONSTANTS } from "@core/constants";
+import { GetPrefixedQueue } from "@core/helpers";
 import { IClientConnector } from "@core/types";
 /**
  * AbstractProducer is an abstract class that provides basic functionalities for adding data to queues.
@@ -12,7 +12,7 @@ export default abstract class AbstractProducer<K> {
    * @param client - An instance of IClientConnector to interact with the queue.
    */
   constructor(private name: string, private client: IClientConnector<K>) {
-    this.queueName = CONSTANTS.QUEUE_PREFIX + this.name;
+    this.queueName = GetPrefixedQueue(this.name);
     process.once("SIGINT", this.handleShutdown.bind(this));
     process.once("SIGTERM", this.handleShutdown.bind(this));
   }
@@ -21,14 +21,23 @@ export default abstract class AbstractProducer<K> {
    * Adds data to the main queue and optionally to additional queues atomically.
    * @param data - The data to be added to the queue.
    * @param additionalQueues - Optional. Additional queues to which the data should be added atomically.
-   * @returns A promise that resolves when the data has been added.
+   * @returns A promise that resolves to the job ID(s) when the data has been added.
+   *          If data is added to a single queue, it returns a string representing the job ID.
+   *          If data is added to multiple queues, it returns an array of strings representing the jobs IDs.
    */
-  public async add(data: unknown, additionalQueues?: string[]) {
+  public async add(
+    data: unknown,
+    additionalQueues?: string[]
+  ): Promise<string | string[]> {
+    const stringifiedData = JSON.stringify(data);
     if (additionalQueues && additionalQueues.length) {
-      await this.client.addAtomic(this.queueName, additionalQueues, data);
-      return;
+      return await this.client.addAtomic(
+        this.queueName,
+        additionalQueues,
+        stringifiedData
+      );
     }
-    await this.client.add(this.queueName, data);
+    return await this.client.add(this.queueName, stringifiedData);
   }
 
   /**
