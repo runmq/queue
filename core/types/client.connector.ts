@@ -1,12 +1,15 @@
+import { ProducerConfigs } from "./producer.configs";
+
 /**
  * IClientConnector is an interface that defines the methods required for interacting with a queueing system.
  */
 export interface IClientConnector<K> {
   /**
    * Initializes the connection to the queueing system.
+   * @param producerConfigs - The configuration options for the producer.
    * @returns A promise that resolves to the initialized connection.
    */
-  create(): Promise<K>;
+  create(producerConfigs: ProducerConfigs): Promise<K>;
 
   /**
    * Checks if a consumer group exists in the specified queue.
@@ -72,35 +75,43 @@ export interface IClientConnector<K> {
    * Adds data to the specified queue.
    * @param queue - The name of the queue.
    * @param data - The data to add to the queue.
-   * @returns A promise that resolves when the data is added.
+   * @returns A promise that resolves with the job id when the data is added.
    */
-  add(queue: string, data: unknown): Promise<void>;
+  add(queue: string, data: unknown): Promise<string>;
 
   /**
    * Adds data atomically to the specified queue and additional queues.
    * @param queue - The name of the main queue.
    * @param additionalQueues - Additional queues to add the data to atomically.
    * @param data - The data to add to the queues.
-   * @returns A promise that resolves when the data is added.
+   * @returns A promise that resolves with the jobs ids when the data is added.
    */
-  addAtomic(queue: string, additionalQueues: string[], data: unknown): Promise<void>;
+  addAtomic(
+    queue: string,
+    additionalQueues: string[],
+    data: unknown
+  ): Promise<string[]>;
 
   /**
    * Adds multiple data entries to the specified queue.
    * @param queue - The name of the queue.
    * @param data - An array of data entries to add to the queue.
-   * @returns A promise that resolves when the data is added.
+   * @returns A promise that resolves with the jobs ids when the data is added.
    */
-  bulk(queue: string, data: unknown[]): Promise<void>;
+  bulk(queue: string, data: unknown[]): Promise<string[]>;
 
   /**
    * Adds multiple data entries atomically to the specified queue and additional queues.
    * @param queue - The name of the main queue.
    * @param additionalQueues - Additional queues to add the data to atomically.
    * @param data - An array of data entries to add to the queues.
-   * @returns A promise that resolves when the data is added.
+   * @returns A promise that resolves with the jobs ids when the data is added.
    */
-  bulkAtomic(queue: string, additionalQueues: string[], data: unknown[]): Promise<void>;
+  bulkAtomic(
+    queue: string,
+    additionalQueues: string[],
+    data: unknown[]
+  ): Promise<string[]>;
 
   /**
    * Sets a heartbeat for the specified worker.
