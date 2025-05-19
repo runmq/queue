@@ -1,5 +1,4 @@
 # RunMQ
 
-This marks the beginning of RunMQ - a pioneering message queue and batch processing solution for Node.js. 
-The goal is to utilize the latest features of Redis to make it the most performant queue in Node.js. 
-Work still in progress, stay tuned for future updates. 
+This marks the beginning of RunMQ - A RabbitMQ-powered job processing framework for Node.js — designed for scale, precision, and reliability.
+Work is still in progress, stay tuned. 

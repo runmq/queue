@@ -2,7 +2,7 @@
   "name": "runmq",
   "type": "module",
   "version": "0.0.1",
-  "description": "RunMQ - A Pioneering message queue & batch processing solution for Node.js. Redefining task management like never before",
+  "description": "A RabbitMQ-powered message processing framework for Node.js — designed for scale, precision, and reliability.",
   "main": "index.js",
   "scripts": {
     "lint": "eslint .",
