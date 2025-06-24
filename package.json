@@ -16,20 +16,18 @@
     "url": "git+https://github.com/runmq/queue.git"
   },
   "author": "https://github.com/iifawzi",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/runmq/queue/issues"
   },
   "homepage": "https://github.com/runmq/queue#readme",
-  "dependencies": {
-    "ioredis": "^5.4.1"
-  },
   "devDependencies": {
-    "@eslint/js": "^9.4.0",
-    "@types/node": "^20.12.13",
-    "eslint": "^9.4.0",
-    "globals": "^15.3.0",
-    "tsx": "^4.11.0",
-    "typescript-eslint": "^7.11.0"
+    "@eslint/js": "^9.29.0",
+    "eslint": "^9.29.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.35.0"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.8"
   }
 }
