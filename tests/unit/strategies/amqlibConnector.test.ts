@@ -2,7 +2,7 @@ import {AmqplibConnector} from "@src/core/strategies/AmqlibConnector";
 import {Exceptions} from "@src/core/exceptions/Exceptions";
 import {RunMQException} from "@src/core/exceptions/RunMQException";
 
-describe('amqlibConnectorShould()', () => {
+describe('AmqplibConnector', () => {
     it('should throw exception if trying to get connection before connecting', async () => {
         const connectorInstance = AmqplibConnector.getInstance();
         try {
