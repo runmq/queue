@@ -58,7 +58,7 @@ export class AmqplibConnector implements ConnectionStrategy {
             }
         }
 
-        return new RunMQException(Exceptions.EXCEEDING_CONNECTION_ATTEMPTS, {
+         throw new RunMQException(Exceptions.EXCEEDING_CONNECTION_ATTEMPTS, {
             attempts: maxAttempts,
             lastError: lastError?.message || 'Unknown error'
         });
