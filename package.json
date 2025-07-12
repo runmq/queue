@@ -7,7 +7,8 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
-    "test": "node --test --loader ts-node/esm tests/**/*.test.ts"
+    "test:unit": "jest tests/unit",
+    "test:e2e": "jest tests/e2e"
   },
   "_moduleAliases": {
     "@": "dist"

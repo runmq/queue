@@ -1,0 +1,27 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: runmq-rabbitmq-test
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: test
+      RABBITMQ_DEFAULT_PASS: test
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - runmq-test
+
+volumes:
+  rabbitmq_data:
+
+networks:
+  runmq-test:
+    driver: bridge

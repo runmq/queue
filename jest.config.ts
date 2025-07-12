@@ -10,9 +10,11 @@ const config: Config.InitialOptions = {
         testMatch: [
             "<rootDir>/tests/**/*.test.ts",
         ],
-        "moduleNameMapper": {
+        moduleNameMapper: {
             "^@src/(.*)$": "<rootDir>/src/$1",
-        }
+        },
+        setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+        testTimeout: 30000
     }
 ;
 export default config;
