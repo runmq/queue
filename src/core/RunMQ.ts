@@ -9,7 +9,7 @@ export class RunMQ {
     private readonly config: RunMQConnectionConfig;
     private retryAttempts: number = 0;
 
-    constructor(config: RunMQConnectionConfig) {
+    private constructor(config: RunMQConnectionConfig) {
         this.amqplibClient = AmqplibClient.getInstance();
         this.config = {
             ...config,
@@ -18,8 +18,10 @@ export class RunMQ {
         };
     }
 
-    public async start(): Promise<void> {
-        await this.connectWithRetry();
+    public static async start(config: RunMQConnectionConfig): Promise<RunMQ> {
+        const instance = new RunMQ(config);
+        await instance.connectWithRetry();
+        return instance;
     }
 
     private async connectWithRetry(): Promise<void> {
