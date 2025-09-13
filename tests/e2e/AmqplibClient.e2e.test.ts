@@ -22,7 +22,7 @@ describe('AmqplibClient E2E Tests', () => {
             const client = new AmqplibClient(validConfig);
             await client.connect();
             expect(client.isActive()).toBe(true);
-            
+
             // Second connect should not throw and should remain connected
             await client.connect();
             expect(client.isActive()).toBe(true);
@@ -45,7 +45,7 @@ describe('AmqplibClient E2E Tests', () => {
             const client = new AmqplibClient(validConfig);
             await client.connect();
             expect(client.isActive()).toBe(true);
-            
+
             await client.disconnect();
             expect(client.isActive()).toBe(false);
             await client.disconnect();
@@ -55,11 +55,22 @@ describe('AmqplibClient E2E Tests', () => {
             const client = new AmqplibClient(validConfig);
             await client.connect();
             await client.disconnect();
-            
+
             // Second disconnect should not throw
             await expect(client.disconnect()).resolves.toBeUndefined();
             expect(client.isActive()).toBe(false);
             await client.disconnect();
         }, 10000);
     });
+
+    describe('channel management', () => {
+        it('should return different channel its time is requested', async () => {
+            const client = new AmqplibClient(validConfig);
+            await client.connect();
+            const channel = await client.getChannel();
+            const channel2 = await client.getChannel();
+            expect(channel).not.toBe(channel2);
+            await client.disconnect();
+        });
+    })
 });
