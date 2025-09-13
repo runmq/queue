@@ -1,6 +1,6 @@
 import {RunMQConnectionConfig} from "@src/types";
 import {RunMQException} from "@src/core/exceptions/RunMQException";
-import {AmqplibClient} from "@src/core/clients/amqplibClient";
+import {AmqplibClient} from "@src/core/clients/AmqplibClient";
 import {Exceptions} from "@src/core/exceptions/Exceptions";
 import {RunMQUtils} from "@src/core/utils/Utils";
 
@@ -10,12 +10,12 @@ export class RunMQ {
     private retryAttempts: number = 0;
 
     private constructor(config: RunMQConnectionConfig) {
-        this.amqplibClient = AmqplibClient.getInstance();
         this.config = {
             ...config,
             reconnectDelay: config.reconnectDelay ?? 5000,
             maxReconnectAttempts: config.maxReconnectAttempts ?? 5
         };
+        this.amqplibClient = new AmqplibClient(this.config);
     }
 
     public static async start(config: RunMQConnectionConfig): Promise<RunMQ> {
@@ -30,14 +30,14 @@ export class RunMQ {
 
         while (this.retryAttempts < maxAttempts) {
             try {
-                await this.amqplibClient.connect(this.config);
+                await this.amqplibClient.connect();
                 console.log('Successfully connected to RabbitMQ');
                 this.retryAttempts = 0;
                 return;
             } catch (error) {
                 this.retryAttempts++;
                 console.error(`Connection attempt ${this.retryAttempts}/${maxAttempts} failed:`, error);
-                
+
                 if (this.retryAttempts >= maxAttempts) {
                     throw new RunMQException(
                         Exceptions.EXCEEDING_CONNECTION_ATTEMPTS,
@@ -58,7 +58,6 @@ export class RunMQ {
         try {
             await this.amqplibClient.disconnect();
         } catch (error) {
-            console.error('Error during disconnect:', error);
             throw new RunMQException(
                 Exceptions.CONNECTION_NOT_ESTABLISHED,
                 {
@@ -66,5 +65,9 @@ export class RunMQ {
                 }
             );
         }
+    }
+
+    public isActive(): boolean {
+        return this.amqplibClient.isActive();
     }
 }

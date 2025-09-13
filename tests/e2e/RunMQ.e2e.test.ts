@@ -1,7 +1,6 @@
 import {RunMQ} from '@src/core/RunMQ';
 import {RunMQException} from '@src/core/exceptions/RunMQException';
 import {Exceptions} from '@src/core/exceptions/Exceptions';
-import {AmqplibClient} from '@src/core/clients/amqplibClient';
 
 describe('RunMQ E2E Tests', () => {
     const validConfig = {
@@ -16,35 +15,10 @@ describe('RunMQ E2E Tests', () => {
         maxReconnectAttempts: 2
     };
 
-    beforeEach(async () => {
-        // Reset singleton instance
-        (AmqplibClient as unknown as { instance: AmqplibClient | undefined }).instance = undefined;
-        
-        // Clean up any existing connections
-        try {
-            const client = AmqplibClient.getInstance();
-            await client.disconnect();
-        } catch {
-            // Ignore cleanup errors
-        }
-    });
-
-    afterEach(async () => {
-        try {
-            const client = AmqplibClient.getInstance();
-            await client.disconnect();
-        } catch {
-            // Ignore cleanup errors
-        }
-    });
-
     describe('connection with retry logic', () => {
         it('should connect successfully on first attempt', async () => {
             const runMQ = await RunMQ.start(validConfig);
-            
-            const client = AmqplibClient.getInstance();
-            expect(client.isConnectionActive()).toBe(true);
-            
+            expect(runMQ.isActive()).toBe(true);
             await runMQ.disconnect();
         }, 15000);
 
@@ -69,31 +43,23 @@ describe('RunMQ E2E Tests', () => {
             await expect(RunMQ.start(invalidConfig)).rejects.toThrow(RunMQException);
             
             const validRunMQ = await RunMQ.start(validConfig);
-            
-            const client = AmqplibClient.getInstance();
-            expect(client.isConnectionActive()).toBe(true);
-            
+            expect(validRunMQ.isActive()).toBe(true);
             await validRunMQ.disconnect();
         }, 25000);
 
         it('should handle disconnect properly', async () => {
             const runMQ = await RunMQ.start(validConfig);
-            
-            const client = AmqplibClient.getInstance();
-            expect(client.isConnectionActive()).toBe(true);
+            expect(runMQ.isActive()).toBe(true);
             
             await runMQ.disconnect();
-            expect(client.isConnectionActive()).toBe(false);
+            expect(runMQ.isActive()).toBe(false);
         }, 15000);
     });
 
     describe('configuration handling', () => {
         it('should use default configuration values', async () => {
             const runMQ = await RunMQ.start({ url: validConfig.url });
-            
-            const client = AmqplibClient.getInstance();
-            expect(client.isConnectionActive()).toBe(true);
-            
+            expect(runMQ.isActive()).toBe(true);
             await runMQ.disconnect();
         }, 15000);
 
@@ -103,12 +69,8 @@ describe('RunMQ E2E Tests', () => {
                 reconnectDelay: 50,
                 maxReconnectAttempts: 1
             };
-            
             const runMQ = await RunMQ.start(customConfig);
-            
-            const client = AmqplibClient.getInstance();
-            expect(client.isConnectionActive()).toBe(true);
-            
+            expect(runMQ.isActive()).toBe(true);
             await runMQ.disconnect();
         }, 15000);
     });
