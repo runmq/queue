@@ -3,6 +3,7 @@ import {RunMQException} from "@src/core/exceptions/RunMQException";
 import {AmqplibClient} from "@src/core/clients/AmqplibClient";
 import {Exceptions} from "@src/core/exceptions/Exceptions";
 import {RunMQUtils} from "@src/core/utils/Utils";
+import {Constants} from "@src/core/constants";
 
 export class RunMQ {
     private readonly amqplibClient: AmqplibClient;
@@ -21,6 +22,7 @@ export class RunMQ {
     public static async start(config: RunMQConnectionConfig): Promise<RunMQ> {
         const instance = new RunMQ(config);
         await instance.connectWithRetry();
+        await instance.initialize();
         return instance;
     }
 
@@ -52,6 +54,11 @@ export class RunMQ {
                 await RunMQUtils.delay(delay);
             }
         }
+    }
+
+    public async initialize(): Promise<void> {
+        const channel = await this.amqplibClient.getChannel();
+        await channel.assertExchange(Constants.ROUTER_EXCHANGE_NAME, 'topic', {durable: true});
     }
 
     public async disconnect(): Promise<void> {

@@ -1,6 +1,8 @@
 import {RunMQ} from '@src/core/RunMQ';
 import {RunMQException} from '@src/core/exceptions/RunMQException';
 import {Exceptions} from '@src/core/exceptions/Exceptions';
+import {AmqplibClient} from "@src/core/clients/AmqplibClient";
+import {Constants} from "@src/core/constants";
 
 describe('RunMQ E2E Tests', () => {
     const validConfig = {
@@ -8,7 +10,7 @@ describe('RunMQ E2E Tests', () => {
         reconnectDelay: 100,
         maxReconnectAttempts: 3
     };
-    
+
     const invalidConfig = {
         url: 'amqp://invalid:invalid@localhost:9999',
         reconnectDelay: 100,
@@ -26,10 +28,10 @@ describe('RunMQ E2E Tests', () => {
             const startTime = Date.now();
             await expect(RunMQ.start(invalidConfig)).rejects.toThrow(RunMQException);
             const endTime = Date.now();
-            
+
             // Should have taken at least the retry delay time
             expect(endTime - startTime).toBeGreaterThan(invalidConfig.reconnectDelay);
-            
+
             try {
                 await RunMQ.start(invalidConfig);
             } catch (error) {
@@ -41,7 +43,7 @@ describe('RunMQ E2E Tests', () => {
 
         it('should connect after temporary network issues', async () => {
             await expect(RunMQ.start(invalidConfig)).rejects.toThrow(RunMQException);
-            
+
             const validRunMQ = await RunMQ.start(validConfig);
             expect(validRunMQ.isActive()).toBe(true);
             await validRunMQ.disconnect();
@@ -50,7 +52,7 @@ describe('RunMQ E2E Tests', () => {
         it('should handle disconnect properly', async () => {
             const runMQ = await RunMQ.start(validConfig);
             expect(runMQ.isActive()).toBe(true);
-            
+
             await runMQ.disconnect();
             expect(runMQ.isActive()).toBe(false);
         }, 15000);
@@ -58,7 +60,7 @@ describe('RunMQ E2E Tests', () => {
 
     describe('configuration handling', () => {
         it('should use default configuration values', async () => {
-            const runMQ = await RunMQ.start({ url: validConfig.url });
+            const runMQ = await RunMQ.start({url: validConfig.url});
             expect(runMQ.isActive()).toBe(true);
             await runMQ.disconnect();
         }, 15000);
@@ -74,4 +76,19 @@ describe('RunMQ E2E Tests', () => {
             await runMQ.disconnect();
         }, 15000);
     });
+
+    describe('Initialization', () => {
+        it('Should create the default router exchange on initialization', async () => {
+            const runMQ = await RunMQ.start(validConfig);
+            const testingConnection = new AmqplibClient(validConfig);
+            const channel = await testingConnection.getChannel();
+            await channel.checkExchange(Constants.ROUTER_EXCHANGE_NAME);
+            await channel.deleteExchange(Constants.ROUTER_EXCHANGE_NAME);
+            await runMQ.disconnect();
+        });
+        it('should not throw error if router exchange is already created', async () => {
+            await RunMQ.start(validConfig);
+            await RunMQ.start(validConfig);
+        });
+    })
 });
