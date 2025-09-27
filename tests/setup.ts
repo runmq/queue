@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+
 beforeAll(async () => {
     console.log('Setting up test environment...');
 });

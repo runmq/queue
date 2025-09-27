@@ -4,7 +4,7 @@ export class RUNMQConsoleLogger implements RunMQLogger {
     readonly prefix = '[RunMQ] - ';
 
     log(message: string): void {
-        console.log(message);
+        console.log(this.formatMessage(message));
     }
 
     error(message: string, ...optionalParams: any[]): void {

@@ -10,9 +10,6 @@ export class RunMQMessage<T = Record<string, never>> {
     readonly meta: RunMQMessageMeta;
 
     constructor(message: T, meta: RunMQMessageMeta) {
-        if (!message || !meta) {
-            throw new Error("Message and Meta cannot be empty");
-        }
         this.message = message;
         this.meta = meta;
     }
@@ -29,9 +26,6 @@ export class RunMQMessageMeta {
     readonly publishedAt: number;
 
     constructor(id: string, publishedAt: number) {
-        if (!id || !publishedAt) {
-            throw new Error("Meta id and publishedAt cannot be empty");
-        }
         this.id = id;
         this.publishedAt = publishedAt;
     }

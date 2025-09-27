@@ -1,14 +1,22 @@
-import {RunMQConnectionConfig} from "@src/types";
+import {RunMQProcessorConfiguration, RunMQConnectionConfig} from "@src/types";
 import {RunMQException} from "@src/core/exceptions/RunMQException";
 import {AmqplibClient} from "@src/core/clients/AmqplibClient";
 import {Exceptions} from "@src/core/exceptions/Exceptions";
 import {RunMQUtils} from "@src/core/utils/Utils";
 import {Constants} from "@src/core/constants";
+import {RunMQMessage} from "@src/core/message/RunMQMessage"
+import {Channel} from "amqplib";
+import {RunMQConsumerCreator} from "@src/core/consumer/RunMQConsumerCreator";
+import {ConsumerConfiguration} from "@src/core/consumer/ConsumerConfiguration";
+import {RunMQLogger} from "@src/core/logging/RunMQLogger";
+import {RUNMQConsoleLogger} from "@src/core/logging/RunMQConsoleLogger";
 
 export class RunMQ {
     private readonly amqplibClient: AmqplibClient;
     private readonly config: RunMQConnectionConfig;
     private retryAttempts: number = 0;
+    private defaultChannel: Channel | undefined;
+    private logger: RunMQLogger = new RUNMQConsoleLogger()
 
     private constructor(config: RunMQConnectionConfig) {
         this.config = {
@@ -57,8 +65,14 @@ export class RunMQ {
     }
 
     public async initialize(): Promise<void> {
-        const channel = await this.amqplibClient.getChannel();
-        await channel.assertExchange(Constants.ROUTER_EXCHANGE_NAME, 'topic', {durable: true});
+        this.defaultChannel = await this.amqplibClient.getChannel();
+        await this.defaultChannel.assertExchange(Constants.ROUTER_EXCHANGE_NAME, 'direct', {durable: true});
+        await this.defaultChannel.assertExchange(Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME, 'direct', {durable: true});
+    }
+
+    public async process<T = Record<string, never>>(topic: string, config: RunMQProcessorConfiguration<T>, processor: (message: RunMQMessage<T>) => void) {
+        const consumer = new RunMQConsumerCreator(this.defaultChannel!, this.amqplibClient, this.logger);
+        await consumer.createConsumer<T>(new ConsumerConfiguration(topic, config, processor))
     }
 
     public async disconnect(): Promise<void> {

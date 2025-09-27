@@ -1,0 +1,10 @@
+import {RunMQProcessorConfiguration} from "@src/types";
+import {RunMQMessage} from "@src/core/message/RunMQMessage";
+
+export class ConsumerConfiguration<T> {
+    constructor(
+        readonly topic: string,
+        readonly processorConfig: RunMQProcessorConfiguration<T>,
+        readonly processor: (message: RunMQMessage<T>) => void) {
+    }
+}
