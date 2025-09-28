@@ -45,7 +45,8 @@ export class RunMQConsumerCreator {
                                 new RunMQFailureLoggerProcessor(
                                     new RunMQBaseProcessor<T>(
                                         consumerConfiguration.processor,
-                                        new DefaultSerializer<T>(consumerConfiguration.processorConfig)
+                                        consumerConfiguration.processorConfig,
+                                        new DefaultSerializer<T>()
                                     ),
                                     this.logger
                                 ),
