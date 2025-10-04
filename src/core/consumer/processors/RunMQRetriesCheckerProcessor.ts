@@ -3,12 +3,12 @@ import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
 import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 import {Constants} from "@src/core/constants";
 
-export class RunMQRetriesCheckerProcessor<T> implements RunMQConsumer {
+export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
     private readonly maxRetryCount: number = this.config.maxRetries ?? 1;
 
     constructor(
         private readonly consumer: RunMQConsumer,
-        private readonly config: RunMQProcessorConfiguration<T>,
+        private readonly config: RunMQProcessorConfiguration,
         private readonly logger: RunMQLogger,
     ) {
     }

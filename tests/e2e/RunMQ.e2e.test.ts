@@ -3,7 +3,6 @@ import {RunMQException} from '@src/core/exceptions/RunMQException';
 import {Exceptions} from '@src/core/exceptions/Exceptions';
 import {AmqplibClient} from "@src/core/clients/AmqplibClient";
 import {Constants} from "@src/core/constants";
-import {RunMQMessage} from "@src/core/message/RunMQMessage";
 
 describe('RunMQ E2E Tests', () => {
     const validConfig = {
@@ -92,38 +91,4 @@ describe('RunMQ E2E Tests', () => {
             await RunMQ.start(validConfig);
         });
     })
-
-    describe('processing', () => {
-        it('Should throw error if message isn\'t an instance of RubMQMessage', async () => {
-            const runMQ = await RunMQ.start(validConfig);
-            await runMQ.process<TestingMessage>("ad.played", {
-                    name: "createInElasticSearchOnAdPlayed",
-                    maxRetries: 3,
-                    consumersCount: 1,
-                    retryDelay: 60000,
-                    cls: TestingMessage
-                },
-                (message: RunMQMessage<TestingMessage>) => {
-                    console.log(message);
-                    throw new Error("testing")
-                }
-            )
-
-            const testingConnection = new AmqplibClient(validConfig);
-            const channel = await testingConnection.getChannel();
-            channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'ad.played', Buffer.from(JSON.stringify({
-                    message: {
-                        namsdsde: "Test Ad",
-                        age: 5
-                    }, meta: {id: 1234, publishedAt: 134958}
-                }))
-            )
-        })
-    })
 });
-
-
-class TestingMessage {
-    constructor(private name: string, private age: number) {
-    }
-}

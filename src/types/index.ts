@@ -1,4 +1,3 @@
-import {ClassConstructor} from "class-transformer/types/interfaces";
 import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
 
 export interface RunMQConnectionConfig {
@@ -7,12 +6,19 @@ export interface RunMQConnectionConfig {
     maxReconnectAttempts?: number;
 }
 
-export interface RunMQProcessorConfiguration<T> {
+type SchemaFailureStrategy = 'dlq'
+export type SchemaType = 'ajv'
+
+export interface RunMQProcessorConfiguration {
     name: string;
     consumersCount: number;
     maxRetries?: number;
     retryDelay?: number;
-    cls?: ClassConstructor<T>;
+    messageSchema?: {
+        type: SchemaType,
+        schema: any,
+        failureStrategy: SchemaFailureStrategy
+    }
 }
 
 export interface RunMQConsumer {

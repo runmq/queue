@@ -41,7 +41,7 @@ export class RunMQConsumerCreator {
                 return new RunMQExceptionLoggerProcessor(
                     new RunMQSucceededMessageAcknowledgerProcessor(
                         new RunMQFailedMessageRejecterProcessor(
-                            new RunMQRetriesCheckerProcessor<T>(
+                            new RunMQRetriesCheckerProcessor(
                                 new RunMQFailureLoggerProcessor(
                                     new RunMQBaseProcessor<T>(
                                         consumerConfiguration.processor,

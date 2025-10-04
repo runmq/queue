@@ -1,6 +1,6 @@
 import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 
-export class RUNMQConsoleLogger implements RunMQLogger {
+export class RunMQConsoleLogger implements RunMQLogger {
     readonly prefix = '[RunMQ] - ';
 
     log(message: string): void {

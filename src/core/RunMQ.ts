@@ -9,26 +9,27 @@ import {Channel} from "amqplib";
 import {RunMQConsumerCreator} from "@src/core/consumer/RunMQConsumerCreator";
 import {ConsumerConfiguration} from "@src/core/consumer/ConsumerConfiguration";
 import {RunMQLogger} from "@src/core/logging/RunMQLogger";
-import {RUNMQConsoleLogger} from "@src/core/logging/RunMQConsoleLogger";
+import {RunMQConsoleLogger} from "@src/core/logging/RunMQConsoleLogger";
 
 export class RunMQ {
     private readonly amqplibClient: AmqplibClient;
     private readonly config: RunMQConnectionConfig;
     private retryAttempts: number = 0;
     private defaultChannel: Channel | undefined;
-    private logger: RunMQLogger = new RUNMQConsoleLogger()
+    private logger: RunMQLogger
 
-    private constructor(config: RunMQConnectionConfig) {
+    private constructor(config: RunMQConnectionConfig, logger: RunMQLogger) {
         this.config = {
             ...config,
             reconnectDelay: config.reconnectDelay ?? 5000,
             maxReconnectAttempts: config.maxReconnectAttempts ?? 5
         };
         this.amqplibClient = new AmqplibClient(this.config);
+        this.logger = logger;
     }
 
-    public static async start(config: RunMQConnectionConfig): Promise<RunMQ> {
-        const instance = new RunMQ(config);
+    public static async start(config: RunMQConnectionConfig, logger: RunMQLogger = new RunMQConsoleLogger): Promise<RunMQ> {
+        const instance = new RunMQ(config, logger);
         await instance.connectWithRetry();
         await instance.initialize();
         return instance;
@@ -70,7 +71,7 @@ export class RunMQ {
         await this.defaultChannel.assertExchange(Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME, 'direct', {durable: true});
     }
 
-    public async process<T = Record<string, never>>(topic: string, config: RunMQProcessorConfiguration<T>, processor: (message: RunMQMessage<T>) => void) {
+    public async process<T = Record<string, never>>(topic: string, config: RunMQProcessorConfiguration, processor: (message: RunMQMessage<T>) => void) {
         const consumer = new RunMQConsumerCreator(this.defaultChannel!, this.amqplibClient, this.logger);
         await consumer.createConsumer<T>(new ConsumerConfiguration(topic, config, processor))
     }

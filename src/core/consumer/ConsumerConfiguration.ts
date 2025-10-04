@@ -4,7 +4,7 @@ import {RunMQMessage} from "@src/core/message/RunMQMessage";
 export class ConsumerConfiguration<T> {
     constructor(
         readonly topic: string,
-        readonly processorConfig: RunMQProcessorConfiguration<T>,
+        readonly processorConfig: RunMQProcessorConfiguration,
         readonly processor: (message: RunMQMessage<T>) => void) {
     }
 }

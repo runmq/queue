@@ -1,7 +1,7 @@
 import {RunMQProcessorConfiguration} from "@src/types";
 
-export interface Serializer<T, K> {
+export interface Serializer<K> {
     serialize(data: K): string;
 
-    deserialize(data: string, processorConfig: RunMQProcessorConfiguration<T>): K;
+    deserialize(data: string, processorConfig: RunMQProcessorConfiguration): K;
 }

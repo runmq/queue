@@ -5,13 +5,13 @@ import {DefaultSerializer} from "@src/core/serializers/DefaultSerializer";
 
 export class RunMQBaseProcessor<T> implements RunMQConsumer {
     constructor(private handler: (message: RunMQMessage<T>) => void,
-                private processorConfig: RunMQProcessorConfiguration<T>,
+                private processorConfig: RunMQProcessorConfiguration,
                 private serializer: DefaultSerializer<T>
     ) {
     }
 
     public consume(message: RabbitMQMessage): boolean {
-        const raw = JSON.parse(message.message.content.toString());
+        const raw = message.message.content.toString();
         const rabbitMQMessage = this.serializer.deserialize(raw, this.processorConfig);
         this.handler(rabbitMQMessage as RunMQMessage<T>);
         return true;

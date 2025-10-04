@@ -1,28 +1,28 @@
-import {Expose, Type} from "class-transformer";
-import "reflect-metadata";
+export class RunMQMessage<T = any> {
+    public static isValid(obj: any) {
+        if (typeof obj === "object" && obj !== null) {
+            return 'message' in obj && 'meta' in obj &&
+                typeof obj.meta === 'object' && obj.meta !== null &&
+                'id' in obj.meta && 'publishedAt' in obj.meta &&
+                typeof obj.meta.id === 'string' &&
+                typeof obj.meta.publishedAt === 'number';
+        }
+        return false;
+    }
 
-export class RunMQMessage<T = Record<string, never>> {
-    @Expose()
+
     readonly message: T;
 
-    @Expose()
-    @Type(() => RunMQMessageMeta)
     readonly meta: RunMQMessageMeta;
 
     constructor(message: T, meta: RunMQMessageMeta) {
         this.message = message;
         this.meta = meta;
     }
-
-    copy(message: T = this.message, meta: RunMQMessageMeta = this.meta) {
-        return new RunMQMessage<T>(message, meta);
-    }
 }
 
 export class RunMQMessageMeta {
-    @Expose()
     readonly id: string;
-    @Expose()
     readonly publishedAt: number;
 
     constructor(id: string, publishedAt: number) {
