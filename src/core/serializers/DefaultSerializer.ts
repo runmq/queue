@@ -47,7 +47,7 @@ export class DefaultSerializer<T> implements Serializer<RunMQMessage<T>> {
 
         if (!RunMQMessage.isValid(parsed)) {
             throw new RunMQSchemaValidationError(
-                'Invalid message format: missing required fields or incorrect types'
+                'Invalid message format: not valid RunMQMessage structure'
             );
         }
 

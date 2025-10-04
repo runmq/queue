@@ -13,6 +13,7 @@ import {RunMQBaseProcessor} from "@src/core/consumer/processors/RunMQBaseProcess
 import {RunMQExceptionLoggerProcessor} from "@src/core/consumer/processors/RunMQExceptionLoggerProcessor";
 import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 import {DefaultSerializer} from "@src/core/serializers/DefaultSerializer";
+import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
 
 export class RunMQConsumerCreator {
     constructor(
@@ -66,12 +67,12 @@ export class RunMQConsumerCreator {
             deadLetterExchange: Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME,
             deadLetterRoutingKey: consumerConfiguration.processorConfig.name
         });
-        await this.defaultChannel.assertQueue(Constants.RETRY_DELAY_QUEUE_PREFIX + consumerConfiguration.processorConfig.name, {
+        await this.defaultChannel.assertQueue(ConsumerCreatorUtils.getRetryDelayTopicName(consumerConfiguration.processorConfig.name), {
             durable: true,
             deadLetterExchange: Constants.ROUTER_EXCHANGE_NAME,
             messageTtl: consumerConfiguration.processorConfig.retryDelay
         });
-        await this.defaultChannel.assertQueue(Constants.DLQ_QUEUE_PREFIX + consumerConfiguration.processorConfig.name, {
+        await this.defaultChannel.assertQueue(ConsumerCreatorUtils.getDLQTopicName(consumerConfiguration.processorConfig.name), {
             durable: true,
             deadLetterExchange: Constants.ROUTER_EXCHANGE_NAME,
             deadLetterRoutingKey: consumerConfiguration.processorConfig.name
@@ -91,14 +92,14 @@ export class RunMQConsumerCreator {
             consumerConfiguration.processorConfig.name
         );
         await this.defaultChannel.bindQueue(
-            Constants.RETRY_DELAY_QUEUE_PREFIX + consumerConfiguration.processorConfig.name,
+            ConsumerCreatorUtils.getRetryDelayTopicName(consumerConfiguration.processorConfig.name),
             Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME,
             consumerConfiguration.processorConfig.name
         );
         await this.defaultChannel.bindQueue(
-            Constants.DLQ_QUEUE_PREFIX + consumerConfiguration.processorConfig.name,
+            ConsumerCreatorUtils.getDLQTopicName(consumerConfiguration.processorConfig.name),
             Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME,
-            Constants.DLQ_QUEUE_PREFIX + consumerConfiguration.processorConfig.name
+            ConsumerCreatorUtils.getDLQTopicName(consumerConfiguration.processorConfig.name)
         );
     }
 

@@ -12,6 +12,7 @@ const config: Config.InitialOptions = {
         ],
         moduleNameMapper: {
             "^@src/(.*)$": "<rootDir>/src/$1",
+            "^@tests/(.*)$": "<rootDir>/tests/$1"
         },
         setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
         testTimeout: 30000

@@ -42,12 +42,12 @@ export class RunMQ {
         while (this.retryAttempts < maxAttempts) {
             try {
                 await this.amqplibClient.connect();
-                console.log('Successfully connected to RabbitMQ');
+                this.logger.log('Successfully connected to RabbitMQ');
                 this.retryAttempts = 0;
                 return;
             } catch (error) {
                 this.retryAttempts++;
-                console.error(`Connection attempt ${this.retryAttempts}/${maxAttempts} failed:`, error);
+                this.logger.error(`Connection attempt ${this.retryAttempts}/${maxAttempts} failed:`, error);
 
                 if (this.retryAttempts >= maxAttempts) {
                     throw new RunMQException(
@@ -59,7 +59,7 @@ export class RunMQ {
                     );
                 }
 
-                console.log(`Retrying in ${delay}ms...`);
+                this.logger.error(`Retrying in ${delay}ms...`);
                 await RunMQUtils.delay(delay);
             }
         }
