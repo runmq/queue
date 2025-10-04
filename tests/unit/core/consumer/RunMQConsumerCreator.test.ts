@@ -21,13 +21,11 @@ describe('RunMQConsumerCreator Unit Tests', () => {
     let mockLogger: jest.Mocked<RunMQLogger>;
     let consumerCreator: RunMQConsumerCreator;
 
-    const testProcessorConfig: RunMQProcessorConfiguration<any> = {
+    const testProcessorConfig: RunMQProcessorConfiguration = {
         name: 'testProcessor',
         maxRetries: 3,
         consumersCount: 2,
         retryDelay: 5000,
-        cls: class TestClass {
-        }
     };
 
     const testConsumerConfig = new ConsumerConfiguration(

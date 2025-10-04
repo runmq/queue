@@ -82,8 +82,8 @@ describe('RunMQ Unit Tests', () => {
             expect(mockAmqplibClient.prototype.connect).toHaveBeenCalledTimes(3);
             expect(RunMQUtils.delay).toHaveBeenCalledTimes(2);
             expect(RunMQUtils.delay).toHaveBeenCalledWith(100);
-            expect(consoleErrorSpy).toHaveBeenCalledTimes(2);
-            expect(consoleLogSpy).toHaveBeenCalledWith('Successfully connected to RabbitMQ');
+            expect(consoleErrorSpy).toHaveBeenCalledTimes(4); // 2 errors + 2 retrying logs
+            expect(consoleLogSpy).toHaveBeenCalledWith('[RunMQ] -  Successfully connected to RabbitMQ');
 
             consoleLogSpy.mockRestore();
             consoleErrorSpy.mockRestore();

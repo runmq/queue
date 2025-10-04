@@ -14,7 +14,7 @@ describe('RunMQRetriesCheckerProcessor', () => {
         error: jest.fn()
     } as unknown as RunMQLogger;
 
-    const processorConfig: RunMQProcessorConfiguration<Record<string, any>> = {
+    const processorConfig: RunMQProcessorConfiguration = {
         name: "test-processor",
         consumersCount: 1,
         maxRetries: 3,
@@ -93,7 +93,7 @@ describe('RunMQRetriesCheckerProcessor - acknowledgeMessage', () => {
         error: jest.fn()
     } as unknown as RunMQLogger;
 
-    const processorConfig: RunMQProcessorConfiguration<Record<string, any>> = {
+    const processorConfig: RunMQProcessorConfiguration = {
         name: "test-processor",
         consumersCount: 1,
         maxRetries: 3,

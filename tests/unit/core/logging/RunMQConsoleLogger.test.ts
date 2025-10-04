@@ -1,7 +1,7 @@
-import { RUNMQConsoleLogger } from '@src/core/logging/RunMQConsoleLogger';
+import { RunMQConsoleLogger } from '@src/core/logging/RunMQConsoleLogger';
 
 describe('RUNMQConsoleLogger Unit Tests', () => {
-    let logger: RUNMQConsoleLogger;
+    let logger: RunMQConsoleLogger;
     let consoleLogSpy: jest.SpyInstance;
     let consoleErrorSpy: jest.SpyInstance;
     let consoleWarnSpy: jest.SpyInstance;
@@ -9,7 +9,7 @@ describe('RUNMQConsoleLogger Unit Tests', () => {
     let consoleDebugSpy: jest.SpyInstance;
 
     beforeEach(() => {
-        logger = new RUNMQConsoleLogger();
+        logger = new RunMQConsoleLogger();
         
         consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
         consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
