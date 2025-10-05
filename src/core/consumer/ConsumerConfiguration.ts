@@ -5,6 +5,6 @@ export class ConsumerConfiguration<T> {
     constructor(
         readonly topic: string,
         readonly processorConfig: RunMQProcessorConfiguration,
-        readonly processor: (message: RunMQMessage<T>) => void) {
+        readonly processor: (message: RunMQMessage<T>) => Promise<void>) {
     }
 }

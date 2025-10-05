@@ -1,4 +1,4 @@
-import {RunMQProcessorConfiguration, RunMQConnectionConfig} from "@src/types";
+import {RunMQProcessorConfiguration, RunMQConnectionConfig, RunMQPublisher} from "@src/types";
 import {RunMQException} from "@src/core/exceptions/RunMQException";
 import {AmqplibClient} from "@src/core/clients/AmqplibClient";
 import {Exceptions} from "@src/core/exceptions/Exceptions";
@@ -10,22 +10,25 @@ import {RunMQConsumerCreator} from "@src/core/consumer/RunMQConsumerCreator";
 import {ConsumerConfiguration} from "@src/core/consumer/ConsumerConfiguration";
 import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 import {RunMQConsoleLogger} from "@src/core/logging/RunMQConsoleLogger";
+import {RunMQPublisherCreator} from "@src/core/publisher/RunMQPublisherCreator";
 
 export class RunMQ {
     private readonly amqplibClient: AmqplibClient;
     private readonly config: RunMQConnectionConfig;
+    private readonly publisher: RunMQPublisher
+    private readonly logger: RunMQLogger
     private retryAttempts: number = 0;
     private defaultChannel: Channel | undefined;
-    private logger: RunMQLogger
 
     private constructor(config: RunMQConnectionConfig, logger: RunMQLogger) {
+        this.logger = logger;
         this.config = {
             ...config,
             reconnectDelay: config.reconnectDelay ?? 5000,
             maxReconnectAttempts: config.maxReconnectAttempts ?? 5
         };
         this.amqplibClient = new AmqplibClient(this.config);
-        this.logger = logger;
+        this.publisher = new RunMQPublisherCreator(this.defaultChannel!, this.logger).createPublisher();
     }
 
     public static async start(config: RunMQConnectionConfig, logger: RunMQLogger = new RunMQConsoleLogger): Promise<RunMQ> {
@@ -71,9 +74,16 @@ export class RunMQ {
         await this.defaultChannel.assertExchange(Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME, 'direct', {durable: true});
     }
 
-    public async process<T = Record<string, never>>(topic: string, config: RunMQProcessorConfiguration, processor: (message: RunMQMessage<T>) => void) {
+    public async process<T = Record<string, never>>(topic: string, config: RunMQProcessorConfiguration, processor: (message: RunMQMessage<T>) => Promise<void>) {
         const consumer = new RunMQConsumerCreator(this.defaultChannel!, this.amqplibClient, this.logger);
         await consumer.createConsumer<T>(new ConsumerConfiguration(topic, config, processor))
+    }
+
+    public publish(topic: string, message: any) {
+        if (!this.publisher) {
+            throw new RunMQException(Exceptions.NOT_INITIALIZED, {});
+        }
+        this.publisher.publish(topic, message);
     }
 
     public async disconnect(): Promise<void> {

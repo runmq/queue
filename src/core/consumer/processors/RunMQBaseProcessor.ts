@@ -1,19 +1,19 @@
 import {RunMQConsumer, RunMQProcessorConfiguration} from "@src/types";
 import {RunMQMessage} from "@src/core/message/RunMQMessage";
 import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
-import {DefaultSerializer} from "@src/core/serializers/DefaultSerializer";
+import {DefaultDeserializer} from "@src/core/serializers/deserializer/DefaultDeserializer";
 
 export class RunMQBaseProcessor<T> implements RunMQConsumer {
-    constructor(private handler: (message: RunMQMessage<T>) => void,
+    constructor(private handler: (message: RunMQMessage<T>) => Promise<void>,
                 private processorConfig: RunMQProcessorConfiguration,
-                private serializer: DefaultSerializer<T>
+                private serializer: DefaultDeserializer<T>
     ) {
     }
 
-    public consume(message: RabbitMQMessage): boolean {
+    public async consume(message: RabbitMQMessage): Promise<boolean> {
         const raw = message.message.content.toString();
         const rabbitMQMessage = this.serializer.deserialize(raw, this.processorConfig);
-        this.handler(rabbitMQMessage as RunMQMessage<T>);
+        await this.handler(rabbitMQMessage as RunMQMessage<T>);
         return true;
     }
 }

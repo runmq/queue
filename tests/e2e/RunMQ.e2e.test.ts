@@ -124,8 +124,8 @@ describe('RunMQ E2E Tests', () => {
 
             const runMQ = await RunMQ.start(validConfig, mockedLogger);
             await runMQ.process<TestingMessage>("ad.played", configuration,
-                () => {
-                    return;
+                (): Promise<void> => {
+                    return Promise.resolve();
                 }
             )
 

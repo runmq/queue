@@ -14,9 +14,9 @@ describe('RunMQFailedMessageRejecterProcessor', () => {
         }
     } as unknown as jest.Mocked<RabbitMQMessage>;
 
-    it("should nack message with allUpTO false and requeue false when consumer throws", () => {
+    it("should nack message with allUpTO false and requeue false when consumer throws", async () => {
         const processor = new RunMQFailedMessageRejecterProcessor(consumer)
-        const result = processor.consume(message)
+        const result = await processor.consume(message)
         expect(result).toBe(false)
         expect(message.channel.nack).toHaveBeenCalledWith(message.message, false, false)
     });

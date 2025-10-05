@@ -1,12 +1,12 @@
 import {
-    DefaultSerializer,
-    SerializationError,
+    DefaultDeserializer,
+    DeserializationError,
     RunMQSchemaValidationError
-} from "@src/core/serializers/DefaultSerializer";
+} from "@src/core/serializers/deserializer/DefaultDeserializer";
 import {RunMQProcessorConfiguration} from "@src/types";
-import {RunMQMessage, RunMQMessageMeta} from "@src/core/message/RunMQMessage";
+import {RunMQMessage} from "@src/core/message/RunMQMessage";
 
-describe("DefaultSerializer", () => {
+describe("DefaultDeserializer", () => {
     const testProcessorConfig: RunMQProcessorConfiguration = {
         name: 'testProcessor',
         maxRetries: 3,
@@ -14,61 +14,23 @@ describe("DefaultSerializer", () => {
         retryDelay: 5000,
     };
 
-    describe('serialize', () => {
-        it("should serialize a RunMQMessage to JSON string", () => {
-            const serializer = new DefaultSerializer<any>();
-            const message = new RunMQMessage(
-                {field1: "value1", field2: 123},
-                new RunMQMessageMeta("test-id", Date.now())
-            );
-
-            const result = serializer.serialize(message);
-            const parsed = JSON.parse(result);
-
-            expect(parsed.message).toEqual({field1: "value1", field2: 123});
-            expect(parsed.meta.id).toBe("test-id");
-            expect(parsed.meta.publishedAt).toBeDefined();
-        });
-
-        it("should serialize complex nested objects", () => {
-            const serializer = new DefaultSerializer<any>();
-            const complexData = {
-                nested: {
-                    array: [1, 2, 3],
-                    object: {key: "value"},
-                    null: null,
-                    boolean: true
-                }
-            };
-            const message = new RunMQMessage(
-                complexData,
-                new RunMQMessageMeta("complex-id", 1234567890)
-            );
-
-            const result = serializer.serialize(message);
-            const parsed = JSON.parse(result);
-
-            expect(parsed.message).toEqual(complexData);
-        });
-    });
-
     describe('deserialize', () => {
         it("should throw SerializationError for empty string", () => {
-            const serializer = new DefaultSerializer();
+            const serializer = new DefaultDeserializer();
 
             expect(() => serializer.deserialize("", testProcessorConfig))
-                .toThrow(SerializationError);
+                .toThrow(DeserializationError);
         });
 
         it("should throw SerializationError if not valid JSON", () => {
-            const serializer = new DefaultSerializer();
+            const serializer = new DefaultDeserializer();
             const data = "invalid json";
             expect(() => serializer.deserialize(data, testProcessorConfig))
-                .toThrow(SerializationError);
+                .toThrow(DeserializationError);
         });
 
         it("should throw ValidationError if valid JSON but not valid RunMQMessage", () => {
-            const serializer = new DefaultSerializer();
+            const serializer = new DefaultDeserializer();
             const invalidMessages = [
                 // Missing meta.id
                 {
@@ -108,7 +70,7 @@ describe("DefaultSerializer", () => {
         });
 
         it("should throw ValidationError if valid RunMQMessage but message does not conform to schema", () => {
-            const serializer = new DefaultSerializer();
+            const serializer = new DefaultDeserializer();
             const data = JSON.stringify({
                 message: {
                     field1: "value1",
@@ -139,7 +101,7 @@ describe("DefaultSerializer", () => {
         });
 
         it("should throw ValidationError with error details when schema validation fails", () => {
-            const serializer = new DefaultSerializer();
+            const serializer = new DefaultDeserializer();
             const data = JSON.stringify({
                 message: {
                     field1: 123, // Should be string
@@ -178,7 +140,7 @@ describe("DefaultSerializer", () => {
         });
 
         it("should deserialize valid RunMQMessage JSON to RunMQMessage when schema is valid", () => {
-            const serializer = new DefaultSerializer();
+            const serializer = new DefaultDeserializer();
             const data = JSON.stringify({
                 message: {field1: "value1", field2: 2}, meta: {
                     id: "123",
@@ -209,7 +171,7 @@ describe("DefaultSerializer", () => {
         });
 
         it("should deserialize valid RunMQMessage JSON to RunMQMessage without schema validation", () => {
-            const serializer = new DefaultSerializer();
+            const serializer = new DefaultDeserializer();
             const data = JSON.stringify({
                 message: {field1: "value1", field2: 2}, meta: {
                     id: "123",

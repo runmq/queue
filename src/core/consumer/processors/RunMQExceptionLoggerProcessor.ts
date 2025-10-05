@@ -5,9 +5,9 @@ import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 export class RunMQExceptionLoggerProcessor implements RunMQConsumer {
     constructor(private consumer: RunMQConsumer, private logger: RunMQLogger) {}
 
-    public consume(message: RabbitMQMessage) {
+    public async consume(message: RabbitMQMessage) {
         try {
-            return this.consumer.consume(message);
+            return await this.consumer.consume(message);
         } catch (e: unknown) {
             if (e instanceof Error) {
                 this.logger.error(e.message, e.stack);

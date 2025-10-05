@@ -17,10 +17,10 @@ describe('RunMQFailureLoggerProcessor', () => {
         }
     } as unknown as RabbitMQMessage;
 
-    it("should log error and rethrow when consumer throws", () => {
+    it("should log error and rethrow when consumer throws", async () => {
         const processor = new RunMQFailureLoggerProcessor(consumer, logger);
         try {
-            processor.consume(message);
+            await processor.consume(message);
         } catch (error) {
             expect(logger.error).toHaveBeenCalledWith('Message processing failed', {
                 message: message.message.content.toString(),

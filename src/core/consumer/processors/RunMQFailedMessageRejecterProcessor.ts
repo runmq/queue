@@ -5,9 +5,9 @@ export class RunMQFailedMessageRejecterProcessor implements RunMQConsumer {
     constructor(private consumer: RunMQConsumer) {
     }
 
-    public consume(message: RabbitMQMessage): boolean {
+    public async consume(message: RabbitMQMessage): Promise<boolean> {
         try {
-            return this.consumer.consume(message);
+            return await this.consumer.consume(message);
         } catch {
             message.channel.nack(message.message, false, false);
             return false;

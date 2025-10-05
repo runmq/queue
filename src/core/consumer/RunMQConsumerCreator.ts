@@ -12,7 +12,7 @@ import {RunMQFailureLoggerProcessor} from "@src/core/consumer/processors/RunMQFa
 import {RunMQBaseProcessor} from "@src/core/consumer/processors/RunMQBaseProcessor";
 import {RunMQExceptionLoggerProcessor} from "@src/core/consumer/processors/RunMQExceptionLoggerProcessor";
 import {RunMQLogger} from "@src/core/logging/RunMQLogger";
-import {DefaultSerializer} from "@src/core/serializers/DefaultSerializer";
+import {DefaultDeserializer} from "@src/core/serializers/deserializer/DefaultDeserializer";
 import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
 
 export class RunMQConsumerCreator {
@@ -47,7 +47,7 @@ export class RunMQConsumerCreator {
                                     new RunMQBaseProcessor<T>(
                                         consumerConfiguration.processor,
                                         consumerConfiguration.processorConfig,
-                                        new DefaultSerializer<T>()
+                                        new DefaultDeserializer<T>()
                                     ),
                                     this.logger
                                 ),

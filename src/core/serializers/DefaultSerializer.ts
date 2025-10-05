@@ -1,7 +1,5 @@
 import {Serializer} from "@src/core/serializers/Serializer";
-import {RunMQMessage, RunMQMessageMeta} from "@src/core/message/RunMQMessage";
-import {RunMQProcessorConfiguration} from "@src/types";
-import {getValidator} from "@src/core/serializers/validation/ValidatorFactory";
+import {RunMQMessage} from "@src/core/message/RunMQMessage";
 
 export class SerializationError extends Error {
     constructor(message: string, public readonly cause?: unknown) {
@@ -10,15 +8,8 @@ export class SerializationError extends Error {
     }
 }
 
-export class RunMQSchemaValidationError extends Error {
-    constructor(message: string, public readonly error?: string) {
-        super(message);
-        this.name = 'ValidationError';
-    }
-}
-
-export class DefaultSerializer<T> implements Serializer<RunMQMessage<T>> {
-    serialize(data: RunMQMessage<T>): string {
+export class DefaultSerializer implements Serializer {
+    serialize(data: RunMQMessage) {
         try {
             return JSON.stringify(data);
         } catch (error) {
@@ -27,48 +18,5 @@ export class DefaultSerializer<T> implements Serializer<RunMQMessage<T>> {
                 error
             );
         }
-    }
-
-    deserialize(data: string, processorConfig: RunMQProcessorConfiguration): RunMQMessage<T> {
-        if (!data) {
-            throw new SerializationError('Input must be a non-empty string');
-        }
-
-        let parsed: unknown;
-        try {
-            parsed = JSON.parse(data);
-        } catch (error) {
-            throw new SerializationError(
-                `Failed to parse JSON: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                error
-            );
-        }
-
-        if (!RunMQMessage.isValid(parsed)) {
-            throw new RunMQSchemaValidationError(
-                'Invalid message format: not valid RunMQMessage structure'
-            );
-        }
-
-        const typedParsed = parsed as { message: unknown; meta: { id: string; publishedAt: number } };
-
-        if (processorConfig.messageSchema) {
-            const {type, schema} = processorConfig.messageSchema;
-            const validator = getValidator<T>(type);
-
-            if (!validator.validate(schema, typedParsed.message)) {
-                throw new RunMQSchemaValidationError(
-                    'Message validation failed against schema',
-                    validator.getError() || undefined
-                );
-            }
-        }
-
-        const message = typedParsed.message as T;
-
-        return new RunMQMessage<T>(
-            message,
-            new RunMQMessageMeta(typedParsed.meta.id, typedParsed.meta.publishedAt)
-        );
     }
 }

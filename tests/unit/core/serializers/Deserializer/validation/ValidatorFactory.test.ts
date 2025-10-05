@@ -1,5 +1,5 @@
-import {getValidator} from "@src/core/serializers/validation/ValidatorFactory";
-import {AjvSchemaValidator} from "@src/core/serializers/validation/AjvSchemaValidator";
+import {getValidator} from "@src/core/serializers/deserializer/validation/ValidatorFactory";
+import {AjvSchemaValidator} from "@src/core/serializers/deserializer/validation/AjvSchemaValidator";
 import {JSONSchemaType} from "ajv";
 
 interface TestData {

@@ -5,9 +5,9 @@ export class RunMQSucceededMessageAcknowledgerProcessor implements RunMQConsumer
     constructor(private consumer: RunMQConsumer) {
     }
 
-    public consume(message: RabbitMQMessage) {
+    public async consume(message: RabbitMQMessage) {
         try {
-            const result = this.consumer.consume(message);
+            const result = await this.consumer.consume(message);
             if (result) {
                 message.channel.ack(message.message)
             }

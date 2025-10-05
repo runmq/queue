@@ -26,7 +26,7 @@ describe('RunMQRetriesCheckerProcessor', () => {
     })
 
 
-    it("should throw error if message hasn't reached max retries yet", () => {
+    it("should throw error if message hasn't reached max retries yet", async () => {
         const message = {
             message: {
                 properties: {
@@ -40,8 +40,7 @@ describe('RunMQRetriesCheckerProcessor', () => {
         } as unknown as jest.Mocked<RabbitMQMessage>
 
         const processor = new RunMQRetriesCheckerProcessor(consumer, processorConfig, logger)
-        expect(() => processor.consume(message))
-            .toThrow(Error);
+        await expect(processor.consume(message)).rejects.toThrow(Error);
     })
 
     it('should log and move to dead-letter queue when max retries reached and acknowledge message', () => {

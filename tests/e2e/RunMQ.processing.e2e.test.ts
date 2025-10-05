@@ -47,7 +47,7 @@ describe('RunMQ E2E Tests', () => {
             await runMQ.process<TestingMessage>("ad.played", configuration,
                 () => {
                     counter++;
-                    return;
+                    return Promise.resolve();
                 }
             )
 
@@ -76,6 +76,7 @@ describe('RunMQ E2E Tests', () => {
                 name!: string;
                 value!: number;
             }
+
             const schema: JSONSchemaType<TestData> = {
                 type: "object",
                 properties: {
@@ -104,7 +105,7 @@ describe('RunMQ E2E Tests', () => {
             await runMQ.process<TestingMessage>("ad.played", configuration,
                 () => {
                     counter++;
-                    return;
+                    return Promise.resolve();
                 }
             )
 
@@ -191,7 +192,7 @@ describe('RunMQ E2E Tests', () => {
             await runMQ.process<TestingMessage>("ad.malformed", configuration,
                 () => {
                     processorCalled = true;
-                    return;
+                    return Promise.resolve();
                 }
             )
 
@@ -226,7 +227,7 @@ describe('RunMQ E2E Tests', () => {
                     if (attemptTimestamps.length < 3) {
                         throw new Error("Retry me");
                     }
-                    return;
+                    return Promise.resolve();
                 }
             )
 

@@ -1,6 +1,6 @@
 import {SchemaType} from "@src/types";
-import {SchemaValidator} from "@src/core/serializers/validation/SchemaValidator";
-import {AjvSchemaValidator} from "@src/core/serializers/validation/AjvSchemaValidator";
+import {SchemaValidator} from "@src/core/serializers/deserializer/validation/SchemaValidator";
+import {AjvSchemaValidator} from "@src/core/serializers/deserializer/validation/AjvSchemaValidator";
 
 const validatorCache: Map<SchemaType, SchemaValidator<any>> = new Map();
 

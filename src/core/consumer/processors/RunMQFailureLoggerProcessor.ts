@@ -6,9 +6,9 @@ export class RunMQFailureLoggerProcessor implements RunMQConsumer {
     constructor(private consumer: RunMQConsumer, private logger: RunMQLogger) {
     }
 
-    public consume(message: RabbitMQMessage) {
+    public async consume(message: RabbitMQMessage) {
         try {
-            return this.consumer.consume(message);
+            return await this.consumer.consume(message);
         } catch (e) {
             this.logger.error('Message processing failed', {
                 message: message.message.content.toString(),

@@ -22,5 +22,10 @@ export interface RunMQProcessorConfiguration {
 }
 
 export interface RunMQConsumer {
-    consume: (message: RabbitMQMessage) => boolean;
+    consume: (message: RabbitMQMessage) => Promise<boolean>;
+}
+
+
+export interface RunMQPublisher {
+    publish: (topic: string, message: any) => void;
 }

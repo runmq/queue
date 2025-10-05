@@ -13,9 +13,9 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
     ) {
     }
 
-    public consume(message: RabbitMQMessage): boolean {
+    public async consume(message: RabbitMQMessage): Promise<boolean> {
         try {
-            return this.consumer.consume(message);
+            return await this.consumer.consume(message);
         } catch (e: unknown) {
             if (this.hasReachedMaxRetries(message)) {
                 this.logMaxRetriesReached(message);
