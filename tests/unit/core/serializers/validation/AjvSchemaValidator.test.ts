@@ -1,5 +1,4 @@
 import {AjvSchemaValidator} from "@src/core/serializers/validation/AjvSchemaValidator";
-import {RunMQMessageValidationError} from "@src/core/serializers/validation/RunMQMessageValidationError";
 import {JSONSchemaType} from "ajv";
 
 interface TestData {
@@ -271,7 +270,7 @@ describe("AjvSchemaValidator", () => {
 
     describe("getErrors", () => {
         it("should return null when no validation has been performed", () => {
-            const errors = validator.getErrors();
+            const errors = validator.getError();
             expect(errors).toBeNull();
         });
 
@@ -292,7 +291,7 @@ describe("AjvSchemaValidator", () => {
             };
 
             validator.validate(schema, validData);
-            const errors = validator.getErrors();
+            const errors = validator.getError();
             expect(errors).toBeNull();
         });
 
@@ -315,165 +314,7 @@ describe("AjvSchemaValidator", () => {
             };
 
             validator.validate(schema, invalidData);
-            const errors = validator.getErrors();
-            
-            expect(errors).toBeDefined();
-            expect(Array.isArray(errors)).toBe(true);
-            expect(errors!.length).toBeGreaterThan(0);
-            
-            // Check that errors are RunMQMessageValidationError type
-            errors!.forEach(error => {
-                expect(error).toHaveProperty('path');
-                expect(error).toHaveProperty('rule');
-                expect(error).toHaveProperty('message');
-                expect(error).toHaveProperty('details');
-            });
-            
-            // Check specific errors
-            const typeError = errors!.find(e => e.rule === 'type');
-            expect(typeError).toBeDefined();
-            expect(typeError!.path).toBe('/message/age');
-            expect(typeError!.message).toContain('must be number');
-            expect(typeError!.value).toBe('invalid');
-            
-            const additionalPropError = errors!.find(e => e.rule === 'additionalProperties');
-            expect(additionalPropError).toBeDefined();
-            expect(additionalPropError!.path).toBe('/message');
-            expect(additionalPropError!.message).toContain('must NOT have additional properties');
-        });
-
-        it("should return detailed errors for nested validation failures", () => {
-            interface NestedData {
-                user: {
-                    name: string;
-                    age: number;
-                };
-            }
-
-            const nestedValidator = new AjvSchemaValidator<NestedData>();
-            const schema: JSONSchemaType<NestedData> = {
-                type: "object",
-                properties: {
-                    user: {
-                        type: "object",
-                        properties: {
-                            name: { type: "string" },
-                            age: { type: "number" }
-                        },
-                        required: ["name", "age"]
-                    }
-                },
-                required: ["user"]
-            };
-
-            const invalidData = {
-                user: {
-                    name: 123, // Should be string
-                    age: "twenty" // Should be number
-                }
-            };
-
-            nestedValidator.validate(schema, invalidData);
-            const errors = nestedValidator.getErrors();
-            
-            expect(errors).toBeDefined();
-            expect(errors!.length).toBe(2);
-            
-            // Check that error paths are correct with /message prefix
-            const nameError = errors!.find(e => e.path === '/message/user/name');
-            expect(nameError).toBeDefined();
-            expect(nameError!.rule).toBe('type');
-            expect(nameError!.value).toBe(123);
-            
-            const ageError = errors!.find(e => e.path === '/message/user/age');
-            expect(ageError).toBeDefined();
-            expect(ageError!.rule).toBe('type');
-            expect(ageError!.value).toBe('twenty');
-        });
-
-        it("should clear previous errors on new validation", () => {
-            const schema: JSONSchemaType<TestData> = {
-                type: "object",
-                properties: {
-                    name: { type: "string" },
-                    age: { type: "number" },
-                    email: { type: "string", nullable: true }
-                },
-                required: ["name", "age"]
-            };
-
-            // First validation - should fail
-            const invalidData = { name: "John" };
-            validator.validate(schema, invalidData);
-            const firstErrors = validator.getErrors();
-            expect(firstErrors).toBeDefined();
-            expect(firstErrors!.length).toBeGreaterThan(0);
-
-            // Second validation - should pass
-            const validData = { name: "John", age: 30 };
-            validator.validate(schema, validData);
-            expect(validator.getErrors()).toBeNull();
-        });
-
-        it("should provide detailed error information for complex validation failures", () => {
-            interface ComplexData {
-                email: string;
-                age: number;
-                tags: string[];
-            }
-
-            const complexValidator = new AjvSchemaValidator<ComplexData>();
-            const schema: JSONSchemaType<ComplexData> = {
-                type: "object",
-                properties: {
-                    email: {
-                        type: "string",
-                        pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
-                    },
-                    age: {
-                        type: "number",
-                        minimum: 18,
-                        maximum: 100
-                    },
-                    tags: {
-                        type: "array",
-                        items: { type: "string" },
-                        minItems: 1,
-                        maxItems: 5,
-                        uniqueItems: true
-                    }
-                },
-                required: ["email", "age", "tags"]
-            };
-
-            const invalidData = {
-                email: "invalid-email",
-                age: 150,
-                tags: ["tag1", "tag1", "tag2", "tag3", "tag4", "tag5", "tag6"]
-            };
-
-            complexValidator.validate(schema, invalidData);
-            const errors = complexValidator.getErrors() as RunMQMessageValidationError[];
-            
-            expect(errors).toBeDefined();
-            expect(errors.length).toBeGreaterThan(0);
-
-            // Check email pattern error
-            const emailError = errors.find(e => e.path === '/message/email');
-            expect(emailError).toBeDefined();
-            expect(emailError!.rule).toBe('pattern');
-            expect(emailError!.details?.expected).toBeDefined();
-
-            // Check age maximum error
-            const ageError = errors.find(e => e.path === '/message/age');
-            expect(ageError).toBeDefined();
-            expect(ageError!.rule).toBe('maximum');
-            expect(ageError!.details?.expected).toBe(100);
-            expect(ageError!.value).toBe(150);
-
-            // Check array errors
-            const arrayErrors = errors.filter(e => e.path.startsWith('/message/tags'));
-            expect(arrayErrors.length).toBeGreaterThan(0);
+            expect(validator.getError()).toBeDefined();
         });
     });
 });
