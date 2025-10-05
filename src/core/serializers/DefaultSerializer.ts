@@ -2,7 +2,6 @@ import {Serializer} from "@src/core/serializers/Serializer";
 import {RunMQMessage, RunMQMessageMeta} from "@src/core/message/RunMQMessage";
 import {RunMQProcessorConfiguration} from "@src/types";
 import {getValidator} from "@src/core/serializers/validation/ValidatorFactory";
-import {RunMQMessageValidationError} from "@src/core/serializers/validation/RunMQMessageValidationError";
 
 export class SerializationError extends Error {
     constructor(message: string, public readonly cause?: unknown) {
@@ -12,7 +11,7 @@ export class SerializationError extends Error {
 }
 
 export class RunMQSchemaValidationError extends Error {
-    constructor(message: string, public readonly errors?: RunMQMessageValidationError[]) {
+    constructor(message: string, public readonly error?: string) {
         super(message);
         this.name = 'ValidationError';
     }
@@ -58,10 +57,9 @@ export class DefaultSerializer<T> implements Serializer<RunMQMessage<T>> {
             const validator = getValidator<T>(type);
 
             if (!validator.validate(schema, typedParsed.message)) {
-                const errors = validator.getErrors();
                 throw new RunMQSchemaValidationError(
                     'Message validation failed against schema',
-                    errors || undefined
+                    validator.getError() || undefined
                 );
             }
         }
