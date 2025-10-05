@@ -3,7 +3,6 @@ import {RunMQException} from '@src/core/exceptions/RunMQException';
 import {Exceptions} from '@src/core/exceptions/Exceptions';
 import {AmqplibClient} from "@src/core/clients/AmqplibClient";
 import {Constants} from "@src/core/constants";
-import {RunMQMessage} from "@src/core/message/RunMQMessage";
 import {ChannelTestHelpers} from "@tests/helpers/ChannelTestHelpers";
 import {RunMQProcessorConfiguration} from "@src/types";
 import {RunMQLogger} from "@src/core/logging/RunMQLogger";
@@ -124,10 +123,8 @@ describe('RunMQ E2E Tests', () => {
             await ChannelTestHelpers.deleteQueue(channel, configuration.name);
 
             const runMQ = await RunMQ.start(validConfig, mockedLogger);
-
             await runMQ.process<TestingMessage>("ad.played", configuration,
-                (message: RunMQMessage<TestingMessage>) => {
-                    console.log("Processing message", message);
+                () => {
                     return;
                 }
             )

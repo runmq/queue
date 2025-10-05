@@ -8,7 +8,6 @@ export class LoggerTestHelpers {
     }
 
     static async assertLoggedWithCount(loggerFunction: any, message: string, count: number) {
-        const calls = (loggerFunction as Mock).mock.calls
         const log = (loggerFunction as Mock).mock.calls.filter(call => call[0] === message);
         expect(log.length).toBe(count);
     }
