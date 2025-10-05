@@ -1,4 +1,4 @@
-import Ajv, {JSONSchemaType, ValidateFunction, ErrorObject} from "ajv";
+import Ajv, {JSONSchemaType, ValidateFunction} from "ajv";
 import {SchemaValidator} from "@src/core/serializers/validation/SchemaValidator";
 
 export class AjvSchemaValidator<T> implements SchemaValidator<JSONSchemaType<T>> {
