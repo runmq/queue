@@ -5,7 +5,7 @@ export class RunMQUtils {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    public static generateMessageId(): string {
+    public static generateUUID(): string {
         return randomUUID();
     }
 }

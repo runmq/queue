@@ -35,12 +35,12 @@ describe("DefaultDeserializer", () => {
                 // Missing meta.id
                 {
                     message: "data",
-                    meta: {publishedAt: Date.now()}
+                    meta: {publishedAt: Date.now(), correlationId: "corr-123"}
                 },
                 // Missing meta.publishedAt
                 {
                     message: "data",
-                    meta: {id: "123"}
+                    meta: {id: "123", correlationId: "corr-123"}
                 },
                 // Missing meta entirely
                 {
@@ -48,17 +48,17 @@ describe("DefaultDeserializer", () => {
                 },
                 // Missing message entirely
                 {
-                    meta: {id: "123", publishedAt: Date.now()}
+                    meta: {id: "123", publishedAt: Date.now(), correlationId: "corr-123"}
                 },
                 // Wrong type for meta.id
                 {
                     message: "data",
-                    meta: {id: 123, publishedAt: Date.now()}
+                    meta: {id: 123, publishedAt: Date.now(), correlationId: "corr-123"}
                 },
                 // Wrong type for meta.publishedAt
                 {
                     message: "data",
-                    meta: {id: "123", publishedAt: "not-a-number"}
+                    meta: {id: "123", publishedAt: "not-a-number", correlationId: "corr-123"}
                 }
             ];
 
@@ -77,6 +77,7 @@ describe("DefaultDeserializer", () => {
                     field2: "string instead of number"
                 }, meta: {
                     id: "123",
+                    correlationId: "corr-123",
                     publishedAt: Date.now()
                 }
             });
@@ -110,6 +111,7 @@ describe("DefaultDeserializer", () => {
                 },
                 meta: {
                     id: "123",
+                    correlationId: "corr-123",
                     publishedAt: Date.now()
                 }
             });
@@ -144,6 +146,7 @@ describe("DefaultDeserializer", () => {
             const data = JSON.stringify({
                 message: {field1: "value1", field2: 2}, meta: {
                     id: "123",
+                    correlationId: "corr-123",
                     publishedAt: Date.now()
                 }
             });
@@ -175,6 +178,7 @@ describe("DefaultDeserializer", () => {
             const data = JSON.stringify({
                 message: {field1: "value1", field2: 2}, meta: {
                     id: "123",
+                    correlationId: "corr-123",
                     publishedAt: Date.now()
                 }
             });

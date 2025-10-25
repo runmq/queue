@@ -3,23 +3,18 @@ import {RunMQLogger} from '@src/core/logging/RunMQLogger';
 import {RunMQFailureLoggerProducer} from '@src/core/publisher/producers/RunMQFailureLoggerProducer';
 import {RunMQBaseProducer} from '@src/core/publisher/producers/RunMQBaseProducer';
 import {DefaultSerializer} from '@src/core/serializers/DefaultSerializer';
-import {Channel} from 'amqplib';
+import {Constants} from "@src/core/constants";
 
 jest.mock('@src/core/publisher/producers/RunMQFailureLoggerProducer');
 jest.mock('@src/core/publisher/producers/RunMQBaseProducer');
 jest.mock('@src/core/serializers/DefaultSerializer');
 
 describe('RunMQPublisherCreator Unit Tests', () => {
-    let mockChannel: jest.Mocked<Channel>;
     let mockLogger: jest.Mocked<RunMQLogger>;
     let publisherCreator: RunMQPublisherCreator;
 
     beforeEach(() => {
         jest.clearAllMocks();
-
-        mockChannel = {
-            publish: jest.fn()
-        } as any;
 
         mockLogger = {
             info: jest.fn(),
@@ -30,7 +25,7 @@ describe('RunMQPublisherCreator Unit Tests', () => {
             verbose: jest.fn(),
         };
 
-        publisherCreator = new RunMQPublisherCreator(mockChannel, mockLogger);
+        publisherCreator = new RunMQPublisherCreator(mockLogger);
     });
 
     describe('createPublisher', () => {
@@ -38,8 +33,8 @@ describe('RunMQPublisherCreator Unit Tests', () => {
             const publisher = publisherCreator.createPublisher();
 
             expect(RunMQBaseProducer).toHaveBeenCalledWith(
-                mockChannel,
-                expect.any(DefaultSerializer)
+                expect.any(DefaultSerializer),
+                Constants.ROUTER_EXCHANGE_NAME,
             );
             expect(RunMQFailureLoggerProducer).toHaveBeenCalledWith(
                 expect.any(RunMQBaseProducer),
@@ -55,18 +50,6 @@ describe('RunMQPublisherCreator Unit Tests', () => {
             expect(DefaultSerializer).toHaveBeenCalledWith();
         });
 
-        it('should pass the correct channel to RunMQBaseProducer', () => {
-            const customChannel = {publish: jest.fn()} as any;
-            const customPublisherCreator = new RunMQPublisherCreator(customChannel, mockLogger);
-
-            customPublisherCreator.createPublisher();
-
-            expect(RunMQBaseProducer).toHaveBeenCalledWith(
-                customChannel,
-                expect.any(DefaultSerializer)
-            );
-        });
-
         it('should pass the correct logger to RunMQFailureLoggerProducer', () => {
             const customLogger = {
                 info: jest.fn(),
@@ -76,7 +59,7 @@ describe('RunMQPublisherCreator Unit Tests', () => {
                 log: jest.fn(),
                 verbose: jest.fn(),
             };
-            const customPublisherCreator = new RunMQPublisherCreator(mockChannel, customLogger);
+            const customPublisherCreator = new RunMQPublisherCreator(customLogger);
 
             customPublisherCreator.createPublisher();
 

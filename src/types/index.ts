@@ -1,4 +1,5 @@
 import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
+import {RunMQMessage} from "@src/core/message/RunMQMessage";
 
 export interface RunMQConnectionConfig {
     url: string;
@@ -27,5 +28,5 @@ export interface RunMQConsumer {
 
 
 export interface RunMQPublisher {
-    publish: (topic: string, message: any) => void;
+    publish: (topic: string, message: RabbitMQMessage) => void;
 }

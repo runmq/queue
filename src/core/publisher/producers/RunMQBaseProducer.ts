@@ -1,20 +1,26 @@
 import {RunMQPublisher} from "@src/types";
-import {RunMQMessage, RunMQMessageMeta} from "@src/core/message/RunMQMessage";
-import {Channel} from "amqplib";
 import {DefaultSerializer} from "@src/core/serializers/DefaultSerializer";
 import {Constants} from "@src/core/constants";
-import {RunMQUtils} from "@src/core/utils/Utils";
+import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
+import {RunMQMessage, RunMQMessageMeta} from "@src/core/message/RunMQMessage";
 
 export class RunMQBaseProducer implements RunMQPublisher {
-    constructor(private readonly channel: Channel, private serializer: DefaultSerializer) {
+    constructor(private serializer: DefaultSerializer, private exchange = Constants.ROUTER_EXCHANGE_NAME) {
     }
 
-    publish(topic: string, message: any): void {
-        const runMQMessage = new RunMQMessage(message, new RunMQMessageMeta(
-            RunMQUtils.generateMessageId(),
-            Date.now(),
-        ));
+    publish(topic: string, message: RabbitMQMessage): void {
+        const runMQMessage = new RunMQMessage(
+            message.message,
+            new RunMQMessageMeta(
+                message.id,
+                Date.now(),
+                message.correlationId,
+            ));
         const serialized = this.serializer.serialize(runMQMessage);
-        this.channel.publish(Constants.ROUTER_EXCHANGE_NAME, topic, Buffer.from(serialized));
+        message.channel.publish(this.exchange, topic, Buffer.from(serialized), {
+            correlationId: message.correlationId,
+            messageId: message.id,
+            headers: message.headers,
+        });
     }
 }

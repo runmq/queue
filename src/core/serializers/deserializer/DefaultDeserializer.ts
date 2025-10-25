@@ -39,7 +39,10 @@ export class DefaultDeserializer<T> implements Deserializer<RunMQMessage<T>> {
             );
         }
 
-        const typedParsed = parsed as { message: unknown; meta: { id: string; publishedAt: number } };
+        const typedParsed = parsed as {
+            message: unknown;
+            meta: { id: string; correlationId: string, publishedAt: number }
+        };
 
         if (processorConfig.messageSchema) {
             const {type, schema} = processorConfig.messageSchema;
@@ -57,7 +60,11 @@ export class DefaultDeserializer<T> implements Deserializer<RunMQMessage<T>> {
 
         return new RunMQMessage<T>(
             message,
-            new RunMQMessageMeta(typedParsed.meta.id, typedParsed.meta.publishedAt)
+            new RunMQMessageMeta(
+                typedParsed.meta.id,
+                typedParsed.meta.publishedAt,
+                typedParsed.meta.correlationId
+            )
         );
     }
 }

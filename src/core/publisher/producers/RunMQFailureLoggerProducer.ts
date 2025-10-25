@@ -1,11 +1,12 @@
 import {RunMQPublisher} from "@src/types";
 import {RunMQLogger} from "@src/core/logging/RunMQLogger";
+import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
 
 export class RunMQFailureLoggerProducer implements RunMQPublisher {
     constructor(private producer: RunMQPublisher, private logger: RunMQLogger) {
     }
 
-    publish(topic: string, message: any): void {
+    publish(topic: string, message: RabbitMQMessage): void {
         try {
             this.producer.publish(topic, message);
         } catch (e) {

@@ -9,7 +9,7 @@ export class RunMQSucceededMessageAcknowledgerProcessor implements RunMQConsumer
         try {
             const result = await this.consumer.consume(message);
             if (result) {
-                message.channel.ack(message.message)
+                message.channel.ack(message.amqpMessage!)
             }
             return result;
         } catch (e) {

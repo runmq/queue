@@ -9,7 +9,7 @@ export class RunMQFailedMessageRejecterProcessor implements RunMQConsumer {
         try {
             return await this.consumer.consume(message);
         } catch {
-            message.channel.nack(message.message, false, false);
+            message.channel.nack(message.amqpMessage!, false, false);
             return false;
         }
     }

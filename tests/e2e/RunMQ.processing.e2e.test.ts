@@ -7,7 +7,6 @@ import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
 import {JSONSchemaType} from "@node_modules/ajv";
 import {RunMQUtils} from "@src/core/utils/Utils";
-import {RunMQConsoleLogger} from "@src/core/logging/RunMQConsoleLogger";
 
 describe('RunMQ E2E Tests', () => {
     const validConfig = {
@@ -34,7 +33,7 @@ describe('RunMQ E2E Tests', () => {
     describe('processing behaviours', () => {
         it('Should process the message correctly given valid RunMQMessage structure without schema', async () => {
             const configuration: RunMQProcessorConfiguration = {
-                name: "createInElasticSearchOnAdPlayed",
+                name: "createInDatabaseOnAdPlayed",
                 maxRetries: 3,
                 consumersCount: 1,
                 retryDelay: 100,
@@ -59,6 +58,7 @@ describe('RunMQ E2E Tests', () => {
                     },
                     meta: {
                         id: "123",
+                        correlationId: "corr-123",
                         publishedAt: Date.now()
                     }
                 }))
@@ -70,6 +70,7 @@ describe('RunMQ E2E Tests', () => {
             await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, 0)
             await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getRetryDelayTopicName(configuration.name), 0)
             await runMQ.disconnect();
+            await testingConnection.disconnect();
         })
 
         it('Should process the message correctly given valid RunMQMessage structure with schema', async () => {
@@ -117,6 +118,7 @@ describe('RunMQ E2E Tests', () => {
                     },
                     meta: {
                         id: "123",
+                        correlationId: "corr-123",
                         publishedAt: Date.now()
                     }
                 }))
@@ -128,6 +130,7 @@ describe('RunMQ E2E Tests', () => {
             await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, 0)
             await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getRetryDelayTopicName(configuration.name), 0)
             await runMQ.disconnect();
+            await testingConnection.disconnect();
         })
 
         it('Should retry processing errors up to maxRetries before sending to DLQ', async () => {
@@ -159,6 +162,7 @@ describe('RunMQ E2E Tests', () => {
                     },
                     meta: {
                         id: "123",
+                        correlationId: "corr-123",
                         publishedAt: Date.now()
                     }
                 }))
@@ -174,6 +178,7 @@ describe('RunMQ E2E Tests', () => {
             await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, 0)
             await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getRetryDelayTopicName(configuration.name), 0)
             await runMQ.disconnect();
+            await testingConnection.disconnect();
         })
 
         it('Should handle malformed JSON messages gracefully', async () => {
@@ -206,6 +211,7 @@ describe('RunMQ E2E Tests', () => {
             await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getDLQTopicName(configuration.name), 1)
             await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, 0)
             await runMQ.disconnect();
+            await testingConnection.disconnect();
         })
 
         it('Should respect retry delay timing between retries', async () => {
@@ -239,6 +245,7 @@ describe('RunMQ E2E Tests', () => {
                     },
                     meta: {
                         id: "123",
+                        correlationId: "corr-123",
                         publishedAt: Date.now()
                     }
                 }))
@@ -260,6 +267,7 @@ describe('RunMQ E2E Tests', () => {
             expect(secondRetryDelay).toBeLessThanOrEqual(350);
 
             await runMQ.disconnect();
+            await testingConnection.disconnect();
         })
 
         it('Should handle multiple consumers processing messages concurrently', async () => {
@@ -297,6 +305,7 @@ describe('RunMQ E2E Tests', () => {
                         },
                         meta: {
                             id: `msg-${i}`,
+                            correlationId: `corr-${i}`,
                             publishedAt: Date.now()
                         }
                     }))
@@ -308,6 +317,7 @@ describe('RunMQ E2E Tests', () => {
             expect(processingCount).toBe(0);
             await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, 0)
             await runMQ.disconnect();
+            await testingConnection.disconnect();
         })
     })
 });

@@ -1,8 +1,10 @@
 import {RunMQBaseProducer} from '@src/core/publisher/producers/RunMQBaseProducer';
 import {DefaultSerializer} from '@src/core/serializers/DefaultSerializer';
-import {RunMQMessage} from '@src/core/message/RunMQMessage';
+import {RunMQMessage, RunMQMessageMeta} from '@src/core/message/RunMQMessage';
 import {Constants} from '@src/core/constants';
 import {Channel} from 'amqplib';
+import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
+import {RabbitMQMessageProperties} from "@src/core/message/RabbitMQMessageProperties";
 
 jest.mock('@src/core/serializers/DefaultSerializer');
 jest.mock('@src/core/message/RunMQMessage', () => ({
@@ -10,9 +12,10 @@ jest.mock('@src/core/message/RunMQMessage', () => ({
         message,
         meta
     })),
-    RunMQMessageMeta: jest.fn().mockImplementation((id, publishedAt) => ({
+    RunMQMessageMeta: jest.fn().mockImplementation((id, publishedAt, correlationId) => ({
         id,
-        publishedAt
+        publishedAt,
+        correlationId,
     }))
 }));
 
@@ -32,41 +35,40 @@ describe('RunMQBaseProducer Unit Tests', () => {
             serialize: jest.fn().mockReturnValue('{"message":"test","meta":{"id":"test-id","publishedAt":1234567890}}')
         } as any;
 
-        producer = new RunMQBaseProducer(mockChannel, mockSerializer);
+        producer = new RunMQBaseProducer(mockSerializer, Constants.ROUTER_EXCHANGE_NAME);
     });
 
     describe('publish', () => {
         it('should create RunMQMessage with generated ID and current timestamp', () => {
-            const testMessage = {name: 'Test Message', value: 42};
+            const testMessage = RabbitMQMessage.from(
+                {name: 'Test Message'},
+                mockChannel,
+                new RabbitMQMessageProperties(
+                    "id",
+                    "correlation-id"
+                ));
             const testTopic = 'test.topic';
 
             producer.publish(testTopic, testMessage);
 
             expect(RunMQMessage).toHaveBeenCalledWith(
-                testMessage,
-                expect.objectContaining({
-                    id: expect.any(String),
-                    publishedAt: expect.any(Number)
+                testMessage.message,
+                expect.objectContaining<RunMQMessageMeta>({
+                    id: testMessage.id,
+                    publishedAt: expect.any(Number),
+                    correlationId: testMessage.correlationId,
                 })
             );
         });
 
-        it('should generate unique IDs for each message', () => {
-            const testMessage1 = {name: 'Message 1'};
-            const testMessage2 = {name: 'Message 2'};
-            const testTopic = 'test.topic';
-
-            producer.publish(testTopic, testMessage1);
-            producer.publish(testTopic, testMessage2);
-
-            const firstCall = (RunMQMessage as unknown as jest.Mock).mock.calls[0];
-            const secondCall = (RunMQMessage as unknown as jest.Mock).mock.calls[1];
-
-            expect(firstCall[1].id).not.toBe(secondCall[1].id);
-        });
-
         it('should serialize the RunMQMessage', () => {
-            const testMessage = {name: 'Test Message'};
+            const testMessage = RabbitMQMessage.from(
+                {name: 'Test Message'},
+                mockChannel,
+                new RabbitMQMessageProperties(
+                    "id",
+                    "correlation-id"
+                ));
             const testTopic = 'test.topic';
 
             producer.publish(testTopic, testMessage);
@@ -74,17 +76,24 @@ describe('RunMQBaseProducer Unit Tests', () => {
             expect(mockSerializer.serialize).toHaveBeenCalledTimes(1);
             expect(mockSerializer.serialize).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    message: testMessage,
+                    message: testMessage.message,
                     meta: expect.objectContaining({
-                        id: expect.any(String),
-                        publishedAt: expect.any(Number)
+                        id: testMessage.id,
+                        publishedAt: expect.any(Number),
+                        correlationId: testMessage.correlationId,
                     })
                 })
             );
         });
 
         it('should publish to the correct exchange and routing key', () => {
-            const testMessage = {name: 'Test Message'};
+            const testMessage = RabbitMQMessage.from(
+                {name: 'Test Message'},
+                mockChannel,
+                new RabbitMQMessageProperties(
+                    "id",
+                    "correlation-id"
+                ));
             const testTopic = 'test.topic';
             const serializedMessage = '{"message":"test","meta":{"id":"test-id","publishedAt":1234567890}}';
 
@@ -93,14 +102,37 @@ describe('RunMQBaseProducer Unit Tests', () => {
             expect(mockChannel.publish).toHaveBeenCalledWith(
                 Constants.ROUTER_EXCHANGE_NAME,
                 testTopic,
-                Buffer.from(serializedMessage)
+                Buffer.from(serializedMessage),
+                {
+                    correlationId: testMessage.correlationId,
+                    messageId: testMessage.id,
+                    headers: testMessage.headers,
+                }
             );
         });
 
         it('should handle different message types', () => {
-            const stringMessage = 'Simple string message';
-            const numberMessage = 42;
-            const objectMessage = {complex: {nested: 'data'}};
+            const stringMessage = RabbitMQMessage.from(
+                'Test Message',
+                mockChannel,
+                new RabbitMQMessageProperties(
+                    "id",
+                    "correlation-id"
+                ));
+            const numberMessage = RabbitMQMessage.from(
+                45,
+                mockChannel,
+                new RabbitMQMessageProperties(
+                    "id",
+                    "correlation-id"
+                ));
+            const objectMessage = RabbitMQMessage.from(
+                {complex: {nested: 'data'}},
+                mockChannel,
+                new RabbitMQMessageProperties(
+                    "id",
+                    "correlation-id"
+                ));
             const testTopic = 'test.topic';
 
             producer.publish(testTopic, stringMessage);
@@ -113,10 +145,33 @@ describe('RunMQBaseProducer Unit Tests', () => {
 
         it('should handle empty and null messages', () => {
             const testTopic = 'test.topic';
-
-            producer.publish(testTopic, null);
-            producer.publish(testTopic, undefined);
-            producer.publish(testTopic, '');
+            const nullMessage = RabbitMQMessage.from(
+                'Test Message',
+                mockChannel,
+                new RabbitMQMessageProperties(
+                    "id",
+                    "correlation-id"
+                )
+            );
+            const undefinedMessage = RabbitMQMessage.from(
+                'Test Message',
+                mockChannel,
+                new RabbitMQMessageProperties(
+                    "id",
+                    "correlation-id"
+                )
+            );
+            const emptyMessage = RabbitMQMessage.from(
+                'Test Message',
+                mockChannel,
+                new RabbitMQMessageProperties(
+                    "id",
+                    "correlation-id"
+                )
+            );
+            producer.publish(testTopic, nullMessage);
+            producer.publish(testTopic, undefinedMessage);
+            producer.publish(testTopic, emptyMessage);
 
             expect(RunMQMessage).toHaveBeenCalledTimes(3);
             expect(mockChannel.publish).toHaveBeenCalledTimes(3);

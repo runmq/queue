@@ -11,6 +11,8 @@ import {ConsumerConfiguration} from "@src/core/consumer/ConsumerConfiguration";
 import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 import {RunMQConsoleLogger} from "@src/core/logging/RunMQConsoleLogger";
 import {RunMQPublisherCreator} from "@src/core/publisher/RunMQPublisherCreator";
+import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
+import {RabbitMQMessageProperties} from "@src/core/message/RabbitMQMessageProperties";
 
 export class RunMQ {
     private readonly amqplibClient: AmqplibClient;
@@ -35,6 +37,40 @@ export class RunMQ {
         await instance.connectWithRetry();
         await instance.initialize();
         return instance;
+    }
+
+    public async process<T = Record<string, never>>(topic: string, config: RunMQProcessorConfiguration, processor: (message: RunMQMessage<T>) => Promise<void>) {
+        const consumer = new RunMQConsumerCreator(this.defaultChannel!, this.amqplibClient, this.logger);
+        await consumer.createConsumer<T>(new ConsumerConfiguration(topic, config, processor))
+    }
+
+    public publish(topic: string, message: any, correlationId: string = RunMQUtils.generateUUID()): void {
+        if (!this.publisher) {
+            throw new RunMQException(Exceptions.NOT_INITIALIZED, {});
+        }
+        this.publisher.publish(topic, RabbitMQMessage.from(
+                message,
+                this.defaultChannel!,
+                new RabbitMQMessageProperties(RunMQUtils.generateUUID(), correlationId)
+            )
+        );
+    }
+
+    public async disconnect(): Promise<void> {
+        try {
+            await this.amqplibClient.disconnect();
+        } catch (error) {
+            throw new RunMQException(
+                Exceptions.CONNECTION_NOT_ESTABLISHED,
+                {
+                    error: error instanceof Error ? error.message : String(error)
+                }
+            );
+        }
+    }
+
+    public isActive(): boolean {
+        return this.amqplibClient.isActive();
     }
 
     private async connectWithRetry(): Promise<void> {
@@ -67,39 +103,10 @@ export class RunMQ {
         }
     }
 
-    public async initialize(): Promise<void> {
+    private async initialize(): Promise<void> {
         this.defaultChannel = await this.amqplibClient.getChannel();
         await this.defaultChannel.assertExchange(Constants.ROUTER_EXCHANGE_NAME, 'direct', {durable: true});
         await this.defaultChannel.assertExchange(Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME, 'direct', {durable: true});
-        this.publisher = new RunMQPublisherCreator(this.defaultChannel, this.logger).createPublisher();
-    }
-
-    public async process<T = Record<string, never>>(topic: string, config: RunMQProcessorConfiguration, processor: (message: RunMQMessage<T>) => Promise<void>) {
-        const consumer = new RunMQConsumerCreator(this.defaultChannel!, this.amqplibClient, this.logger);
-        await consumer.createConsumer<T>(new ConsumerConfiguration(topic, config, processor))
-    }
-
-    public publish(topic: string, message: any) {
-        if (!this.publisher) {
-            throw new RunMQException(Exceptions.NOT_INITIALIZED, {});
-        }
-        this.publisher.publish(topic, message);
-    }
-
-    public async disconnect(): Promise<void> {
-        try {
-            await this.amqplibClient.disconnect();
-        } catch (error) {
-            throw new RunMQException(
-                Exceptions.CONNECTION_NOT_ESTABLISHED,
-                {
-                    error: error instanceof Error ? error.message : String(error)
-                }
-            );
-        }
-    }
-
-    public isActive(): boolean {
-        return this.amqplibClient.isActive();
+        this.publisher = new RunMQPublisherCreator(this.logger).createPublisher();
     }
 }

@@ -12,9 +12,7 @@ describe('RunMQFailureLoggerProcessor', () => {
         error: jest.fn()
     } as unknown as jest.Mocked<RunMQLogger>;
     const message = {
-        message: {
-            content: Buffer.from('test message')
-        }
+        message: "test message",
     } as unknown as RabbitMQMessage;
 
     it("should log error and rethrow when consumer throws", async () => {
@@ -23,7 +21,7 @@ describe('RunMQFailureLoggerProcessor', () => {
             await processor.consume(message);
         } catch (error) {
             expect(logger.error).toHaveBeenCalledWith('Message processing failed', {
-                message: message.message.content.toString(),
+                message: message.message,
                 error: (error as Error).message,
                 stack: (error as Error).stack,
             });

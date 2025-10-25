@@ -8,7 +8,7 @@ describe("DefaultDeserializer", () => {
         it("should serialize a RunMQMessage to JSON string", () => {
             const message = new RunMQMessage(
                 {field1: "value1", field2: 123},
-                new RunMQMessageMeta("test-id", Date.now())
+                new RunMQMessageMeta("test-id", Date.now(), "correlation-id")
             );
 
             const result = serializer.serialize(message);
@@ -30,7 +30,7 @@ describe("DefaultDeserializer", () => {
             };
             const message = new RunMQMessage(
                 complexData,
-                new RunMQMessageMeta("complex-id", 1234567890)
+                new RunMQMessageMeta("complex-id", 1234567890, "correlation-id")
             );
 
             const result = serializer.serialize(message);

@@ -1,0 +1,1 @@
+export type AMQPMessage = import('amqplib').Message | null;

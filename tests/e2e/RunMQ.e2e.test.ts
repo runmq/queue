@@ -102,10 +102,13 @@ describe('RunMQ E2E Tests', () => {
             await channel.checkExchange(Constants.ROUTER_EXCHANGE_NAME);
             await channel.deleteExchange(Constants.ROUTER_EXCHANGE_NAME);
             await runMQ.disconnect();
+            await testingConnection.disconnect();
         });
         it('should not throw error if router exchange is already created', async () => {
-            await RunMQ.start(validConfig, mockedLogger);
-            await RunMQ.start(validConfig, mockedLogger);
+            const runMQ1 = await RunMQ.start(validConfig, mockedLogger);
+            const runMQ2 = await RunMQ.start(validConfig, mockedLogger);
+            await runMQ1.disconnect();
+            await runMQ2.disconnect();
         });
     })
 
@@ -147,6 +150,8 @@ describe('RunMQ E2E Tests', () => {
                 },
                 1
             )
+            await runMQ.disconnect();
+            await testingConnection.disconnect();
         })
     })
 });

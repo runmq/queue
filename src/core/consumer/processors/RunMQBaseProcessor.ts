@@ -11,8 +11,7 @@ export class RunMQBaseProcessor<T> implements RunMQConsumer {
     }
 
     public async consume(message: RabbitMQMessage): Promise<boolean> {
-        const raw = message.message.content.toString();
-        const rabbitMQMessage = this.serializer.deserialize(raw, this.processorConfig);
+        const rabbitMQMessage = this.serializer.deserialize(message.message, this.processorConfig);
         await this.handler(rabbitMQMessage as RunMQMessage<T>);
         return true;
     }

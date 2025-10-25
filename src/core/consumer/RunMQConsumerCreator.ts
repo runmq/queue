@@ -14,6 +14,7 @@ import {RunMQExceptionLoggerProcessor} from "@src/core/consumer/processors/RunMQ
 import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 import {DefaultDeserializer} from "@src/core/serializers/deserializer/DefaultDeserializer";
 import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
+import {RunMQPublisherCreator} from "@src/core/publisher/RunMQPublisherCreator";
 
 export class RunMQConsumerCreator {
     constructor(
@@ -35,10 +36,19 @@ export class RunMQConsumerCreator {
 
     private async runProcessor<T>(consumerConfiguration: ConsumerConfiguration<T>): Promise<void> {
         const consumerChannel = await this.getProcessorChannel();
+        const DLQPublisher = new RunMQPublisherCreator(this.logger).createPublisher(Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME);
+
         await consumerChannel.prefetch(10);
         await consumerChannel.consume(consumerConfiguration.processorConfig.name, async (msg) => {
             if (msg) {
-                const rabbitmqMessage = new RabbitMQMessage(msg, consumerChannel)
+                const rabbitmqMessage = new RabbitMQMessage(
+                    msg.content.toString(),
+                    msg.properties.messageId,
+                    msg.properties.correlationId,
+                    consumerChannel,
+                    msg,
+                    msg.properties.headers,
+                )
                 return new RunMQExceptionLoggerProcessor(
                     new RunMQSucceededMessageAcknowledgerProcessor(
                         new RunMQFailedMessageRejecterProcessor(
@@ -52,6 +62,7 @@ export class RunMQConsumerCreator {
                                     this.logger
                                 ),
                                 consumerConfiguration.processorConfig,
+                                DLQPublisher,
                                 this.logger
                             )
                         )

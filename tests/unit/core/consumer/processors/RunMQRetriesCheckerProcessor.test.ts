@@ -1,8 +1,8 @@
 import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 import {RunMQRetriesCheckerProcessor} from "@src/core/consumer/processors/RunMQRetriesCheckerProcessor";
-import {RunMQProcessorConfiguration} from "@src/types";
+import {RunMQProcessorConfiguration, RunMQPublisher} from "@src/types";
 import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
-import {Constants} from "@src/core/constants";
+import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
 
 describe('RunMQRetriesCheckerProcessor', () => {
     const consumer = {
@@ -38,44 +38,44 @@ describe('RunMQRetriesCheckerProcessor', () => {
                 }
             }
         } as unknown as jest.Mocked<RabbitMQMessage>
+        const runMQPublisher = {
+            publish: jest.fn(),
+        } as unknown as jest.Mocked<RunMQPublisher>;
 
-        const processor = new RunMQRetriesCheckerProcessor(consumer, processorConfig, logger)
+        const processor = new RunMQRetriesCheckerProcessor(consumer, processorConfig, runMQPublisher, logger)
         await expect(processor.consume(message)).rejects.toThrow(Error);
     })
 
     it('should log and move to dead-letter queue when max retries reached and acknowledge message', () => {
         const message = {
-            message: {
-                properties: {
-                    headers: {
-                        "x-death": [
-                            {count: 2, "reason": "rejected"},
-                        ]
-                    }
-                }
+            message: "test message",
+            headers: {
+                "x-death": [
+                    {count: 2, "reason": "rejected"},
+                ]
             },
             channel: {
                 ack: jest.fn(),
                 publish: jest.fn(),
             }
         } as unknown as jest.Mocked<RabbitMQMessage>
+        const runMQPublisher = {
+            publish: jest.fn(),
+        } as unknown as jest.Mocked<RunMQPublisher>;
 
-        const processor = new RunMQRetriesCheckerProcessor(consumer, processorConfig, logger)
+        const processor = new RunMQRetriesCheckerProcessor(consumer, processorConfig, runMQPublisher, logger)
         processor.consume(message)
 
         expect(logger.error).toHaveBeenCalledWith(`Message reached maximum retries. Moving to dead-letter queue.`, {
-            message: message.message.content?.toString(),
+            message: message.message,
             retries: 3,
             max: 3,
         });
-        expect(message.channel.publish).toHaveBeenCalledWith(
-            Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME, Constants.DLQ_QUEUE_PREFIX + processorConfig.name,
-            message.message.content,
-            {
-                headers: message.message.properties.headers
-            }
+        expect(runMQPublisher.publish).toHaveBeenCalledWith(
+            ConsumerCreatorUtils.getDLQTopicName(processorConfig.name),
+            message
         )
-        expect(message.channel.ack).toHaveBeenCalledWith(message.message, false);
+        expect(message.channel.ack).toHaveBeenCalledWith(message.amqpMessage, false);
     })
 })
 
@@ -98,24 +98,23 @@ describe('RunMQRetriesCheckerProcessor - acknowledgeMessage', () => {
 
     it("should throw error if acknowledge message failed", async () => {
         const message = {
-            message: {
-                properties: {
-                    headers: {
-                        "x-death": [
-                            {count: 2, "reason": "rejected"},
-                        ]
-                    }
-                }
+            message: "test message",
+            headers: {
+                "x-death": [
+                    {count: 2, "reason": "rejected"},
+                ]
             },
             channel: {
-                ack: jest.fn().mockImplementationOnce(() => {
-                    throw new Error("acknowledge error");
-                }),
+                ack: jest.fn(),
                 publish: jest.fn(),
             }
         } as unknown as jest.Mocked<RabbitMQMessage>
 
-        const processor = new RunMQRetriesCheckerProcessor(consumer, processorConfig, logger)
+        const runMQPublisher = {
+            publish: jest.fn(),
+        } as unknown as jest.Mocked<RunMQPublisher>;
+
+        const processor = new RunMQRetriesCheckerProcessor(consumer, processorConfig, runMQPublisher, logger)
         try {
             await processor.consume(message)
         } catch (e) {
@@ -126,16 +125,13 @@ describe('RunMQRetriesCheckerProcessor - acknowledgeMessage', () => {
         }
 
         expect(logger.error).toHaveBeenCalledWith(`Message reached maximum retries. Moving to dead-letter queue.`, {
-            message: message.message.content?.toString(),
+            message: message.message,
             retries: 3,
             max: 3,
         });
-        expect(message.channel.publish).toHaveBeenCalledWith(
-            Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME, Constants.DLQ_QUEUE_PREFIX + processorConfig.name,
-            message.message.content,
-            {
-                headers: message.message.properties.headers
-            }
+        expect(runMQPublisher.publish).toHaveBeenCalledWith(
+            ConsumerCreatorUtils.getDLQTopicName(processorConfig.name),
+            message
         )
     });
 

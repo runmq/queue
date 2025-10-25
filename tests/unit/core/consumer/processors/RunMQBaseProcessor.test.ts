@@ -23,6 +23,6 @@ describe('RunMQBaseProcessor', () => {
         const processor = new RunMQBaseProcessor(handler, processorConfig, serializer)
         const result = await processor.consume(message)
         expect(result).toBe(true)
-        expect(serializer.deserialize).toHaveBeenCalledWith(message.message.content.toString(), processorConfig);
+        expect(serializer.deserialize).toHaveBeenCalledWith(message.message, processorConfig);
     });
 })

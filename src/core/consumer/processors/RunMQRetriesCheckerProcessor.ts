@@ -1,7 +1,7 @@
-import {RunMQConsumer, RunMQProcessorConfiguration} from "@src/types";
+import {RunMQConsumer, RunMQProcessorConfiguration, RunMQPublisher} from "@src/types";
 import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
 import {RunMQLogger} from "@src/core/logging/RunMQLogger";
-import {Constants} from "@src/core/constants";
+import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
 
 export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
     private readonly maxRetryCount: number = this.config.maxRetries ?? 1;
@@ -9,6 +9,7 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
     constructor(
         private readonly consumer: RunMQConsumer,
         private readonly config: RunMQProcessorConfiguration,
+        private readonly publisher: RunMQPublisher,
         private readonly logger: RunMQLogger,
     ) {
     }
@@ -35,7 +36,7 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
     private logMaxRetriesReached(message: RabbitMQMessage) {
         this.logger.error(
             `Message reached maximum retries. Moving to dead-letter queue.`, {
-                message: message.message.content?.toString(),
+                message: message.message.toString(),
                 retries: this.getRejectionCount(message),
                 max: this.maxRetryCount,
             }
@@ -43,17 +44,12 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
     }
 
     private moveToFinalDeadLetter(message: RabbitMQMessage) {
-        message.channel.publish(Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME,
-            Constants.DLQ_QUEUE_PREFIX + this.config.name,
-            message.message.content,
-            {
-                headers: message.message.properties.headers
-            })
+        this.publisher.publish(ConsumerCreatorUtils.getDLQTopicName(this.config.name), message)
     }
 
     private acknowledgeMessage(message: RabbitMQMessage) {
         try {
-            message.channel.ack(message.message, false);
+            message.channel.ack(message.amqpMessage!, false);
         } catch (e) {
             const error = new Error("A message acknowledge failed after publishing to final dead letter");
             (error as any).cause = e;
@@ -62,7 +58,7 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
     }
 
     private getRejectionCount(message: RabbitMQMessage): number {
-        const xDeath = message.message.properties.headers?.["x-death"];
+        const xDeath = message.headers?.["x-death"];
         if (!Array.isArray(xDeath)) return 0;
         const deathRecord = xDeath.filter(entry => entry && entry.reason == 'rejected')[0];
         return deathRecord ? deathRecord.count + 1 : 0;

@@ -3,8 +3,11 @@ export class RunMQMessage<T = any> {
         if (typeof obj === "object" && obj !== null) {
             return 'message' in obj && 'meta' in obj &&
                 typeof obj.meta === 'object' && obj.meta !== null &&
-                'id' in obj.meta && 'publishedAt' in obj.meta &&
+                'id' in obj.meta &&
+                'correlationId' in obj.meta &&
+                'publishedAt' in obj.meta &&
                 typeof obj.meta.id === 'string' &&
+                typeof obj.meta.correlationId === 'string' &&
                 typeof obj.meta.publishedAt === 'number';
         }
         return false;
@@ -24,9 +27,11 @@ export class RunMQMessage<T = any> {
 export class RunMQMessageMeta {
     readonly id: string;
     readonly publishedAt: number;
+    readonly correlationId: string;
 
-    constructor(id: string, publishedAt: number) {
+    constructor(id: string, publishedAt: number, correlationId: string) {
         this.id = id;
+        this.correlationId = correlationId;
         this.publishedAt = publishedAt;
     }
 }
