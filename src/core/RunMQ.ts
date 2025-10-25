@@ -15,7 +15,7 @@ import {RunMQPublisherCreator} from "@src/core/publisher/RunMQPublisherCreator";
 export class RunMQ {
     private readonly amqplibClient: AmqplibClient;
     private readonly config: RunMQConnectionConfig;
-    private readonly publisher: RunMQPublisher
+    private publisher: RunMQPublisher | undefined
     private readonly logger: RunMQLogger
     private retryAttempts: number = 0;
     private defaultChannel: Channel | undefined;
@@ -28,7 +28,6 @@ export class RunMQ {
             maxReconnectAttempts: config.maxReconnectAttempts ?? 5
         };
         this.amqplibClient = new AmqplibClient(this.config);
-        this.publisher = new RunMQPublisherCreator(this.defaultChannel!, this.logger).createPublisher();
     }
 
     public static async start(config: RunMQConnectionConfig, logger: RunMQLogger = new RunMQConsoleLogger): Promise<RunMQ> {
@@ -72,6 +71,7 @@ export class RunMQ {
         this.defaultChannel = await this.amqplibClient.getChannel();
         await this.defaultChannel.assertExchange(Constants.ROUTER_EXCHANGE_NAME, 'direct', {durable: true});
         await this.defaultChannel.assertExchange(Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME, 'direct', {durable: true});
+        this.publisher = new RunMQPublisherCreator(this.defaultChannel, this.logger).createPublisher();
     }
 
     public async process<T = Record<string, never>>(topic: string, config: RunMQProcessorConfiguration, processor: (message: RunMQMessage<T>) => Promise<void>) {

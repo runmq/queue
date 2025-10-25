@@ -19,23 +19,23 @@ describe('RunMQSucceededMessageAcknowledgerProcessor', () => {
         jest.clearAllMocks();
     })
 
-    it("should ack message when the processor succeeds", () => {
+    it("should ack message when the processor succeeds", async () => {
         const processor = new RunMQSucceededMessageAcknowledgerProcessor(consumer)
-        const result = processor.consume(message)
+        const result = await processor.consume(message)
         expect(result).toBe(true)
         expect(message.channel.ack).toHaveBeenCalledWith(message.message)
     });
 
 
-    it("should return false and not ack message when result is false", () => {
+    it("should return false and not ack message when result is false", async () => {
         const processor = new RunMQSucceededMessageAcknowledgerProcessor(consumer)
-        const result = processor.consume(message)
+        const result = await processor.consume(message)
         expect(result).toBe(false)
         expect(message.channel.ack).not.toHaveBeenCalled()
     })
 
 
-    it("should rethrow when consumer throws", () => {
+    it("should rethrow when consumer throws", async () => {
         const throwingConsumer: jest.Mocked<RunMQConsumer> = {
             consume: jest.fn().mockImplementationOnce(() => {
                 throw new Error("Test error");
@@ -43,7 +43,7 @@ describe('RunMQSucceededMessageAcknowledgerProcessor', () => {
         }
         const processor = new RunMQSucceededMessageAcknowledgerProcessor(throwingConsumer)
         try {
-            processor.consume(message);
+            await processor.consume(message);
         } catch (error) {
             expect(error).toBeInstanceOf(Error);
         }

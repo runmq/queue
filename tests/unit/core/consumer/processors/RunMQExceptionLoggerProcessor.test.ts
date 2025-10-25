@@ -14,7 +14,7 @@ describe('RunMQExceptionLoggerProcessor Unit tests', () => {
     };
     const rabbitMQMessage = {} as unknown as jest.Mocked<RabbitMQMessage>;
 
-    it('should log error and rethrow when consumer throws an error', () => {
+    it('should log error and rethrow when consumer throws an error', async () => {
         const mockConsumer: jest.Mocked<RunMQConsumer> = {
             consume: jest.fn().mockImplementationOnce(() => {
                 throw new Error("Test error");
@@ -22,7 +22,7 @@ describe('RunMQExceptionLoggerProcessor Unit tests', () => {
         };
         const runMQExceptionLoggerProcessor = new RunMQExceptionLoggerProcessor(mockConsumer, mockLogger);
         try {
-            runMQExceptionLoggerProcessor.consume(rabbitMQMessage);
+            await runMQExceptionLoggerProcessor.consume(rabbitMQMessage);
         } catch (e) {
             expect(mockLogger.error).toHaveBeenCalledWith("Test error", (e as Error).stack);
             expect(e).toBeInstanceOf(Error);
@@ -30,7 +30,7 @@ describe('RunMQExceptionLoggerProcessor Unit tests', () => {
         }
     });
 
-    it('should log error and rethrow when consumer throws an error but not instance of Error', () => {
+    it('should log error and rethrow when consumer throws an error but not instance of Error', async () => {
         const mockConsumer: jest.Mocked<RunMQConsumer> = {
             consume: jest.fn().mockImplementationOnce(() => {
                 throw new RuntimeError("Test error");
@@ -38,7 +38,7 @@ describe('RunMQExceptionLoggerProcessor Unit tests', () => {
         };
         const runMQExceptionLoggerProcessor = new RunMQExceptionLoggerProcessor(mockConsumer, mockLogger);
         try {
-            runMQExceptionLoggerProcessor.consume(rabbitMQMessage);
+            await runMQExceptionLoggerProcessor.consume(rabbitMQMessage);
         } catch (e) {
             const stringified = JSON.stringify(new RuntimeError("Test error"));
             expect(mockLogger.error).toHaveBeenCalledWith(stringified);

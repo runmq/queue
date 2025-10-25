@@ -10,7 +10,7 @@ export class RunMQFailureLoggerProducer implements RunMQPublisher {
             this.producer.publish(topic, message);
         } catch (e) {
             this.logger.error('Message publishing failed', {
-                message: message.message.content.toString(),
+                message: message,
                 error: e instanceof Error ? e.message : JSON.stringify(e),
                 stack: e instanceof Error ? e.stack : undefined,
             });

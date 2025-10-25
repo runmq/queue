@@ -3,6 +3,7 @@ import {RunMQMessage, RunMQMessageMeta} from "@src/core/message/RunMQMessage";
 import {Channel} from "amqplib";
 import {DefaultSerializer} from "@src/core/serializers/DefaultSerializer";
 import {Constants} from "@src/core/constants";
+import {RunMQUtils} from "@src/core/utils/Utils";
 
 export class RunMQBaseProducer implements RunMQPublisher {
     constructor(private readonly channel: Channel, private serializer: DefaultSerializer) {
@@ -10,7 +11,7 @@ export class RunMQBaseProducer implements RunMQPublisher {
 
     publish(topic: string, message: any): void {
         const runMQMessage = new RunMQMessage(message, new RunMQMessageMeta(
-            "TODO_USE_ID_GENERATOR_HERE",
+            RunMQUtils.generateMessageId(),
             Date.now(),
         ));
         const serialized = this.serializer.serialize(runMQMessage);

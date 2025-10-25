@@ -96,7 +96,7 @@ describe('RunMQRetriesCheckerProcessor - acknowledgeMessage', () => {
         retryDelay: 5000,
     };
 
-    it("should throw error if acknowledge message failed", () => {
+    it("should throw error if acknowledge message failed", async () => {
         const message = {
             message: {
                 properties: {
@@ -117,8 +117,7 @@ describe('RunMQRetriesCheckerProcessor - acknowledgeMessage', () => {
 
         const processor = new RunMQRetriesCheckerProcessor(consumer, processorConfig, logger)
         try {
-            processor.consume(message)
-
+            await processor.consume(message)
         } catch (e) {
             expect(e).toBeInstanceOf(Error);
             expect((e as Error).message).toBe("A message acknowledge failed after publishing to final dead letter");

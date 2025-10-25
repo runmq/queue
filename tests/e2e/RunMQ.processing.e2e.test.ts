@@ -7,6 +7,7 @@ import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
 import {JSONSchemaType} from "@node_modules/ajv";
 import {RunMQUtils} from "@src/core/utils/Utils";
+import {RunMQConsoleLogger} from "@src/core/logging/RunMQConsoleLogger";
 
 describe('RunMQ E2E Tests', () => {
     const validConfig = {
