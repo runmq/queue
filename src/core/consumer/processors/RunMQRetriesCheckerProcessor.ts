@@ -9,7 +9,7 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
     constructor(
         private readonly consumer: RunMQConsumer,
         private readonly config: RunMQProcessorConfiguration,
-        private readonly publisher: RunMQPublisher,
+        private readonly DLQPublisher: RunMQPublisher,
         private readonly logger: RunMQLogger,
     ) {
     }
@@ -44,7 +44,7 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
     }
 
     private moveToFinalDeadLetter(message: RabbitMQMessage) {
-        this.publisher.publish(ConsumerCreatorUtils.getDLQTopicName(this.config.name), message)
+        this.DLQPublisher.publish(ConsumerCreatorUtils.getDLQTopicName(this.config.name), message)
     }
 
     private acknowledgeMessage(message: RabbitMQMessage) {
