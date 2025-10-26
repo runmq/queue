@@ -1,8 +1,8 @@
 import * as amqp from 'amqplib';
-import { AmqplibClient } from '@src/core/clients/AmqplibClient';
-import { RunMQException } from '@src/core/exceptions/RunMQException';
-import { Exceptions } from '@src/core/exceptions/Exceptions';
-import { Channel, ChannelModel } from 'amqplib';
+import {AmqplibClient} from '@src/core/clients/AmqplibClient';
+import {RunMQException} from '@src/core/exceptions/RunMQException';
+import {Exceptions} from '@src/core/exceptions/Exceptions';
+import {Channel, ChannelModel} from 'amqplib';
 
 jest.mock('amqplib');
 
@@ -44,7 +44,7 @@ describe('AmqplibClient Unit Tests', () => {
 
         it('should return existing connection if already connected', async () => {
             const client = new AmqplibClient(validConfig);
-            
+
             const firstConnection = await client.connect();
             const secondConnection = await client.connect();
 
@@ -59,15 +59,12 @@ describe('AmqplibClient Unit Tests', () => {
 
             await expect(client.connect()).rejects.toThrow(RunMQException);
 
-            try {
-                await client.connect();
-            } catch (error) {
-                expect(error).toBeInstanceOf(RunMQException);
-                expect((error as RunMQException).exception).toBe(Exceptions.CONNECTION_NOT_ESTABLISHED);
-                expect((error as RunMQException).details).toEqual({
+            await expect(client.connect()).rejects.toMatchObject({
+                exception: Exceptions.CONNECTION_NOT_ESTABLISHED,
+                details: {
                     error: 'Connection failed'
-                });
-            }
+                }
+            });
 
             expect(client.isActive()).toBe(false);
         });
@@ -144,15 +141,12 @@ describe('AmqplibClient Unit Tests', () => {
 
             await expect(client.disconnect()).rejects.toThrow(RunMQException);
 
-            try {
-                await client.disconnect();
-            } catch (error) {
-                expect(error).toBeInstanceOf(RunMQException);
-                expect((error as RunMQException).exception).toBe(Exceptions.CONNECTION_NOT_ESTABLISHED);
-                expect((error as RunMQException).details).toEqual({
+            await expect(client.disconnect()).rejects.toMatchObject({
+                exception: Exceptions.CONNECTION_NOT_ESTABLISHED,
+                details: {
                     error: 'Disconnect failed'
-                });
-            }
+                }
+            });
         });
     });
 

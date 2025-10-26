@@ -132,13 +132,11 @@ describe("DefaultDeserializer", () => {
                 }
             };
 
-            try {
-                serializer.deserialize(data, processorConfigWithSchema);
-                fail("Should have thrown ValidationError");
-            } catch (error) {
-                expect(error).toBeInstanceOf(RunMQSchemaValidationError);
-                expect((error as RunMQSchemaValidationError).message).toBe("Message validation failed against schema");
-            }
+            expect(() => serializer.deserialize(data, processorConfigWithSchema))
+                .toThrow(expect.objectContaining({
+                    name: 'ValidationError',
+                    message: 'Message validation failed against schema'
+                }));
         });
 
         it("should deserialize valid RunMQMessage JSON to RunMQMessage when schema is valid", () => {
@@ -189,4 +187,5 @@ describe("DefaultDeserializer", () => {
             expect(result.meta.publishedAt).toBeDefined();
         });
     });
-});
+})
+;

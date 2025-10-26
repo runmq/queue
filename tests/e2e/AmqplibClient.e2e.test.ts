@@ -1,14 +1,10 @@
 import {AmqplibClient} from '@src/core/clients/AmqplibClient';
-import {RunMQException} from '@src/core/exceptions/RunMQException';
 import {Exceptions} from '@src/core/exceptions/Exceptions';
+import {RunMQConnectionConfigExample} from "@tests/Examples/RunMQConnectionConfigExample";
 
 describe('AmqplibClient E2E Tests', () => {
-    const validConfig = {
-        url: 'amqp://test:test@localhost:5673'
-    };
-    const invalidConfig = {
-        url: 'amqp://invalid:invalid@localhost:9999'
-    };
+    const validConfig = RunMQConnectionConfigExample.valid();
+    const invalidConfig = RunMQConnectionConfigExample.invalid();
 
     describe('connection management', () => {
         it('should connect successfully to RabbitMQ', async () => {
@@ -31,12 +27,11 @@ describe('AmqplibClient E2E Tests', () => {
 
         it('should throw RunMQException on invalid connection', async () => {
             const client = new AmqplibClient(invalidConfig);
-            try {
-                await client.connect();
-            } catch (error) {
-                expect(error).toBeInstanceOf(RunMQException);
-                expect((error as RunMQException).exception).toBe(Exceptions.CONNECTION_NOT_ESTABLISHED);
-            }
+
+            await expect(client.connect()).rejects.toMatchObject({
+                exception: Exceptions.CONNECTION_NOT_ESTABLISHED,
+            });
+
             expect(client.isActive()).toBe(false);
             await client.disconnect();
         }, 10000);

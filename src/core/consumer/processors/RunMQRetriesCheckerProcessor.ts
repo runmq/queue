@@ -36,7 +36,7 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
     private logMaxRetriesReached(message: RabbitMQMessage) {
         this.logger.error(
             `Message reached maximum retries. Moving to dead-letter queue.`, {
-                message: message.message.toString(),
+                message: JSON.stringify(message.message),
                 retries: this.getRejectionCount(message),
                 max: this.maxRetryCount,
             }
@@ -52,7 +52,7 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
             message.channel.ack(message.amqpMessage!, false);
         } catch (e) {
             const error = new Error("A message acknowledge failed after publishing to final dead letter");
-            (error as any).cause = e;
+            this.logger.error(error.message, {cause: e instanceof Error ? e.message : String(e)});
             throw error;
         }
     }

@@ -13,7 +13,12 @@ export class RabbitMQMessage {
         readonly headers: Record<string, any> = {}) {
     }
 
-    static from(messageData: any, channel: Channel, props: RabbitMQMessageProperties, amqpMessage: AMQPMessage = null): RabbitMQMessage {
+    static from(
+        messageData: Record<string, any>,
+        channel: Channel,
+        props: RabbitMQMessageProperties,
+        amqpMessage: AMQPMessage = null
+    ): RabbitMQMessage {
         return new RabbitMQMessage(
             messageData,
             props.id,

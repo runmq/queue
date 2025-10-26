@@ -1,5 +1,12 @@
 import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
-import {RunMQMessage} from "@src/core/message/RunMQMessage";
+import {Channel, ChannelModel} from "amqplib";
+
+export interface AMQPClient {
+    connect():  Promise<ChannelModel>;
+    getChannel(): Promise<Channel>
+    disconnect(): Promise<void>
+    isActive(): boolean
+}
 
 export interface RunMQConnectionConfig {
     url: string;
@@ -7,7 +14,7 @@ export interface RunMQConnectionConfig {
     maxReconnectAttempts?: number;
 }
 
-type SchemaFailureStrategy = 'dlq'
+export type SchemaFailureStrategy = 'dlq'
 export type SchemaType = 'ajv'
 
 export interface RunMQProcessorConfiguration {
@@ -15,11 +22,13 @@ export interface RunMQProcessorConfiguration {
     consumersCount: number;
     maxRetries?: number;
     retryDelay?: number;
-    messageSchema?: {
-        type: SchemaType,
-        schema: any,
-        failureStrategy: SchemaFailureStrategy
-    }
+    messageSchema?: MessageSchema
+}
+
+export interface MessageSchema {
+    type: SchemaType;
+    schema: any;
+    failureStrategy: SchemaFailureStrategy;
 }
 
 export interface RunMQConsumer {

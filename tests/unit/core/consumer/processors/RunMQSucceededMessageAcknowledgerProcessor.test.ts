@@ -1,14 +1,14 @@
-import {RunMQConsumer} from "@src/types";
 import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
 import {
     RunMQSucceededMessageAcknowledgerProcessor
 } from "@src/core/consumer/processors/RunMQSucceededMessageAcknowledgerProcessor";
+import {
+    MockedFailedRabbitMQConsumer,
+    MockedSuccessfulRabbitMQConsumer,
+    MockedThrowableRabbitMQConsumer
+} from "@tests/mocks/MockedRunMQConsumer";
 
 describe('RunMQSucceededMessageAcknowledgerProcessor', () => {
-    const consumer: jest.Mocked<RunMQConsumer> = {
-        consume: jest.fn().mockReturnValueOnce(true).mockReturnValueOnce(false),
-    }
-
     const message = {
         channel: {
             ack: jest.fn()
@@ -20,33 +20,25 @@ describe('RunMQSucceededMessageAcknowledgerProcessor', () => {
     })
 
     it("should ack message when the processor succeeds", async () => {
-        const processor = new RunMQSucceededMessageAcknowledgerProcessor(consumer)
+        const successfulConsumer = new MockedSuccessfulRabbitMQConsumer()
+        const processor = new RunMQSucceededMessageAcknowledgerProcessor(successfulConsumer)
         const result = await processor.consume(message)
         expect(result).toBe(true)
         expect(message.channel.ack).toHaveBeenCalledWith(message.message)
     });
 
-
     it("should return false and not ack message when result is false", async () => {
-        const processor = new RunMQSucceededMessageAcknowledgerProcessor(consumer)
+        const failedConsumer = new MockedFailedRabbitMQConsumer()
+        const processor = new RunMQSucceededMessageAcknowledgerProcessor(failedConsumer)
         const result = await processor.consume(message)
         expect(result).toBe(false)
         expect(message.channel.ack).not.toHaveBeenCalled()
     })
 
-
     it("should rethrow when consumer throws", async () => {
-        const throwingConsumer: jest.Mocked<RunMQConsumer> = {
-            consume: jest.fn().mockImplementationOnce(() => {
-                throw new Error("Test error");
-            }),
-        }
-        const processor = new RunMQSucceededMessageAcknowledgerProcessor(throwingConsumer)
-        try {
-            await processor.consume(message);
-        } catch (error) {
-            expect(error).toBeInstanceOf(Error);
-        }
-    })
+        const throwableConsumer = new MockedThrowableRabbitMQConsumer()
+        const processor = new RunMQSucceededMessageAcknowledgerProcessor(throwableConsumer)
 
+        await expect(processor.consume(message)).rejects.toThrow(Error);
+    })
 })

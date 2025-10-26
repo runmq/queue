@@ -2,27 +2,16 @@ import {RunMQ} from '@src/core/RunMQ';
 import {AmqplibClient} from "@src/core/clients/AmqplibClient";
 import {Constants} from "@src/core/constants";
 import {ChannelTestHelpers} from "@tests/helpers/ChannelTestHelpers";
-import {RunMQProcessorConfiguration} from "@src/types";
-import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
-import {JSONSchemaType} from "@node_modules/ajv";
 import {RunMQUtils} from "@src/core/utils/Utils";
+import {MockedRunMQLogger} from "@tests/mocks/MockedRunMQLogger";
+import {RunMQConnectionConfigExample} from "@tests/Examples/RunMQConnectionConfigExample";
+import {RunMQProcessorConfigurationExample} from "@tests/Examples/RunMQProcessorConfigurationExample";
+import {RunMQMessageExample} from "@tests/Examples/RunMQMessageExample";
+import {MessageTestUtils} from "@tests/helpers/MessageTestUtils";
 
 describe('RunMQ E2E Tests', () => {
-    const validConfig = {
-        url: 'amqp://test:test@localhost:5673',
-        reconnectDelay: 100,
-        maxReconnectAttempts: 3
-    };
-
-    const mockedLogger: RunMQLogger = {
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        debug: jest.fn(),
-        log: jest.fn(),
-        verbose: jest.fn(),
-    }
+    const validConfig = RunMQConnectionConfigExample.valid();
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -32,17 +21,12 @@ describe('RunMQ E2E Tests', () => {
 
     describe('processing behaviours', () => {
         it('Should process the message correctly given valid RunMQMessage structure without schema', async () => {
-            const configuration: RunMQProcessorConfiguration = {
-                name: "createInDatabaseOnAdPlayed",
-                maxRetries: 3,
-                consumersCount: 1,
-                retryDelay: 100,
-            }
+            const configuration = RunMQProcessorConfigurationExample.simpleNoSchema()
 
             const channel = await testingConnection.getChannel();
             await ChannelTestHelpers.deleteQueue(channel, configuration.name);
 
-            const runMQ = await RunMQ.start(validConfig, mockedLogger);
+            const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
             let counter = 0;
             await runMQ.process<TestingMessage>("ad.played", configuration,
                 () => {
@@ -51,18 +35,7 @@ describe('RunMQ E2E Tests', () => {
                 }
             )
 
-            channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'ad.played', Buffer.from(JSON.stringify({
-                    message: {
-                        name: "Test Ad",
-                        value: 5
-                    },
-                    meta: {
-                        id: "123",
-                        correlationId: "corr-123",
-                        publishedAt: Date.now()
-                    }
-                }))
-            )
+            channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'ad.played', MessageTestUtils.buffer(RunMQMessageExample.random()))
 
             await RunMQUtils.delay(500);
             expect(counter).toBe(1);
@@ -74,55 +47,21 @@ describe('RunMQ E2E Tests', () => {
         })
 
         it('Should process the message correctly given valid RunMQMessage structure with schema', async () => {
-            class TestData {
-                name!: string;
-                value!: number;
-            }
-
-            const schema: JSONSchemaType<TestData> = {
-                type: "object",
-                properties: {
-                    name: {type: "string"},
-                    value: {type: "number"}
-                },
-                required: ["name", "value"]
-            };
-            const configuration: RunMQProcessorConfiguration = {
-                name: "createInElasticSearchOnAdPlayed",
-                maxRetries: 3,
-                consumersCount: 1,
-                retryDelay: 100,
-                messageSchema: {
-                    type: "ajv",
-                    schema: schema,
-                    failureStrategy: "dlq"
-                }
-            }
+            const configuration = RunMQProcessorConfigurationExample.simpleWithPersonSchema();
 
             const channel = await testingConnection.getChannel();
             await ChannelTestHelpers.deleteQueue(channel, configuration.name);
 
-            const runMQ = await RunMQ.start(validConfig, mockedLogger);
+            const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
             let counter = 0;
-            await runMQ.process<TestingMessage>("ad.played", configuration,
+            await runMQ.process<TestingMessage>("user.created", configuration,
                 () => {
                     counter++;
                     return Promise.resolve();
                 }
             )
 
-            channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'ad.played', Buffer.from(JSON.stringify({
-                    message: {
-                        name: "Test Ad",
-                        value: 5
-                    },
-                    meta: {
-                        id: "123",
-                        correlationId: "corr-123",
-                        publishedAt: Date.now()
-                    }
-                }))
-            )
+            channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'user.created', MessageTestUtils.buffer(RunMQMessageExample.person()))
 
             await RunMQUtils.delay(500);
             expect(counter).toBe(1);
@@ -134,39 +73,23 @@ describe('RunMQ E2E Tests', () => {
         })
 
         it('Should retry processing errors up to maxRetries before sending to DLQ', async () => {
-            const configuration: RunMQProcessorConfiguration = {
-                name: "processingErrorRetryTest",
-                maxRetries: 2,
-                consumersCount: 1,
-                retryDelay: 100,
-            }
+            const configuration = RunMQProcessorConfigurationExample.simpleWithPersonSchema(2);
+
 
             const channel = await testingConnection.getChannel();
             await ChannelTestHelpers.deleteQueue(channel, configuration.name);
-            await ChannelTestHelpers.deleteQueue(channel, ConsumerCreatorUtils.getDLQTopicName(configuration.name));
-            await ChannelTestHelpers.deleteQueue(channel, ConsumerCreatorUtils.getRetryDelayTopicName(configuration.name));
 
-            const runMQ = await RunMQ.start(validConfig, mockedLogger);
+            const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
             let attemptCount = 0;
-            await runMQ.process<TestingMessage>("ad.error", configuration,
+            await runMQ.process<TestingMessage>("user.created", configuration,
                 () => {
                     attemptCount++;
                     throw new Error("Processing failed");
                 }
             )
 
-            channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'ad.error', Buffer.from(JSON.stringify({
-                    message: {
-                        name: "Test Ad",
-                        value: 5
-                    },
-                    meta: {
-                        id: "123",
-                        correlationId: "corr-123",
-                        publishedAt: Date.now()
-                    }
-                }))
-            )
+            channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'user.created', MessageTestUtils.buffer(RunMQMessageExample.person()))
+
 
             await RunMQUtils.delay(100);
             expect(attemptCount).toBe(1);
@@ -182,32 +105,25 @@ describe('RunMQ E2E Tests', () => {
         })
 
         it('Should handle malformed JSON messages gracefully', async () => {
-            const configuration: RunMQProcessorConfiguration = {
-                name: "malformedJsonTest",
-                maxRetries: 1,
-                consumersCount: 1,
-                retryDelay: 100,
-            }
+            const configuration = RunMQProcessorConfigurationExample.simpleNoSchema();
 
             const channel = await testingConnection.getChannel();
             await ChannelTestHelpers.deleteQueue(channel, configuration.name);
-            await ChannelTestHelpers.deleteQueue(channel, ConsumerCreatorUtils.getDLQTopicName(configuration.name));
 
-            const runMQ = await RunMQ.start(validConfig, mockedLogger);
+            const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
             let processorCalled = false;
-            await runMQ.process<TestingMessage>("ad.malformed", configuration,
+            await runMQ.process<TestingMessage>("user.malformed", configuration,
                 () => {
                     processorCalled = true;
                     return Promise.resolve();
                 }
             )
 
-            // Send malformed JSON
-            channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'ad.malformed', Buffer.from("{invalid json}"))
+            channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'user.malformed', Buffer.from("{invalid json}"))
 
             await RunMQUtils.delay(500);
             expect(processorCalled).toBe(false);
-            // Malformed JSON should go to DLQ after retries
+
             await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getDLQTopicName(configuration.name), 1)
             await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, 0)
             await runMQ.disconnect();
@@ -215,20 +131,20 @@ describe('RunMQ E2E Tests', () => {
         })
 
         it('Should respect retry delay timing between retries', async () => {
-            const configuration: RunMQProcessorConfiguration = {
-                name: "retryDelayTimingTest",
-                maxRetries: 3,
-                consumersCount: 1,
-                retryDelay: 300, // 300ms retry delay
-            }
+            const configuration = RunMQProcessorConfigurationExample.random(
+                "timingTestConsumer",
+                1,
+                3,
+                300
+            );
+
 
             const channel = await testingConnection.getChannel();
             await ChannelTestHelpers.deleteQueue(channel, configuration.name);
-            await ChannelTestHelpers.deleteQueue(channel, ConsumerCreatorUtils.getRetryDelayTopicName(configuration.name));
 
-            const runMQ = await RunMQ.start(validConfig, mockedLogger);
+            const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
             const attemptTimestamps: number[] = [];
-            await runMQ.process<TestingMessage>("ad.timing", configuration,
+            await runMQ.process<TestingMessage>("user.created", configuration,
                 () => {
                     attemptTimestamps.push(Date.now());
                     if (attemptTimestamps.length < 3) {
@@ -238,18 +154,7 @@ describe('RunMQ E2E Tests', () => {
                 }
             )
 
-            channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'ad.timing', Buffer.from(JSON.stringify({
-                    message: {
-                        name: "Test Ad",
-                        value: 5
-                    },
-                    meta: {
-                        id: "123",
-                        correlationId: "corr-123",
-                        publishedAt: Date.now()
-                    }
-                }))
-            )
+            channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'user.created', MessageTestUtils.buffer(RunMQMessageExample.person()))
 
             // Wait for all attempts
             await RunMQUtils.delay(1000);
@@ -271,21 +176,16 @@ describe('RunMQ E2E Tests', () => {
         })
 
         it('Should handle multiple consumers processing messages concurrently', async () => {
-            const configuration: RunMQProcessorConfiguration = {
-                name: "multipleConcurrentConsumers",
-                maxRetries: 1,
-                consumersCount: 3, // 3 concurrent consumers
-                retryDelay: 100,
-            }
+            const configuration = RunMQProcessorConfigurationExample.simpleNoSchema();
 
             const channel = await testingConnection.getChannel();
             await ChannelTestHelpers.deleteQueue(channel, configuration.name);
 
-            const runMQ = await RunMQ.start(validConfig, mockedLogger);
+            const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
             const processedMessages = new Set<string>();
             let processingCount = 0;
 
-            await runMQ.process<TestingMessage>("ad.concurrent", configuration,
+            await runMQ.process<TestingMessage>("user.created", configuration,
                 async (message) => {
                     processingCount++;
                     // Simulate processing time
@@ -298,18 +198,7 @@ describe('RunMQ E2E Tests', () => {
 
             // Publish multiple messages
             for (let i = 1; i <= 6; i++) {
-                channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'ad.concurrent', Buffer.from(JSON.stringify({
-                        message: {
-                            name: `Test Ad ${i}`,
-                            value: i
-                        },
-                        meta: {
-                            id: `msg-${i}`,
-                            correlationId: `corr-${i}`,
-                            publishedAt: Date.now()
-                        }
-                    }))
-                )
+                channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'user.created', MessageTestUtils.buffer(RunMQMessageExample.random()))
             }
             // Small delay to let processing start
             await RunMQUtils.delay(1000);

@@ -2,9 +2,9 @@ import * as amqp from "amqplib";
 import {RunMQException} from "@src/core/exceptions/RunMQException";
 import {Exceptions} from "@src/core/exceptions/Exceptions";
 import {Channel, ChannelModel} from "amqplib";
-import {RunMQConnectionConfig} from "@src/types";
+import {AMQPClient, RunMQConnectionConfig} from "@src/types";
 
-export class AmqplibClient {
+export class AmqplibClient implements AMQPClient {
     private channelModel: ChannelModel | undefined;
     private isConnected: boolean = false;
 
@@ -43,12 +43,9 @@ export class AmqplibClient {
             );
         }
     }
-
-
     public async getChannel(): Promise<Channel> {
         return await (await this.connect()).createChannel()
     }
-
     public async disconnect(): Promise<void> {
         try {
             if (this.channelModel && this.isConnected) {

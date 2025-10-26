@@ -1,28 +1,19 @@
-import {RunMQProcessorConfiguration} from "@src/types";
-import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
 import {RunMQBaseProcessor} from "@src/core/consumer/processors/RunMQBaseProcessor";
 import {DefaultDeserializer} from "@src/core/serializers/deserializer/DefaultDeserializer";
+import {MockedRabbitMQMessage} from "@tests/mocks/MockedRabbitMQMessage";
+import {MockedDefaultDeserializer} from "@tests/mocks/MockedDefaultDeserializer";
+import {RunMQProcessorConfigurationExample} from "@tests/Examples/RunMQProcessorConfigurationExample";
 
 describe('RunMQBaseProcessor', () => {
     const handler = jest.fn();
-    const processorConfig: RunMQProcessorConfiguration = jest.fn() as unknown as RunMQProcessorConfiguration;
-    const serializer: DefaultDeserializer<any> = {
-        deserialize: jest.fn()
-    } as unknown as DefaultDeserializer<any>;
-
-    const message = {
-        channel: {
-            nack: jest.fn()
-        },
-        message: {
-            content: Buffer.from('test message')
-        }
-    } as unknown as jest.Mocked<RabbitMQMessage>;
+    const processorConfig = RunMQProcessorConfigurationExample.random()
+    const serializer: DefaultDeserializer<any> = new MockedDefaultDeserializer();
+    const rabbitMQMessage = MockedRabbitMQMessage
 
     it("should delegate to deserializer then to handler", async () => {
         const processor = new RunMQBaseProcessor(handler, processorConfig, serializer)
-        const result = await processor.consume(message)
+        const result = await processor.consume(rabbitMQMessage)
         expect(result).toBe(true)
-        expect(serializer.deserialize).toHaveBeenCalledWith(message.message, processorConfig);
+        expect(serializer.deserialize).toHaveBeenCalledWith(rabbitMQMessage.message, processorConfig);
     });
 })

@@ -44,11 +44,13 @@ export class RunMQ {
         await consumer.createConsumer<T>(new ConsumerConfiguration(topic, config, processor))
     }
 
-    public publish(topic: string, message: any, correlationId: string = RunMQUtils.generateUUID()): void {
+    public publish(topic: string, message: Record<string, any>, correlationId: string = RunMQUtils.generateUUID()): void {
         if (!this.publisher) {
             throw new RunMQException(Exceptions.NOT_INITIALIZED, {});
         }
-        this.publisher.publish(topic, RabbitMQMessage.from(
+        RunMQUtils.assertRecord(message);
+        this.publisher.publish(topic,
+            RabbitMQMessage.from(
                 message,
                 this.defaultChannel!,
                 new RabbitMQMessageProperties(RunMQUtils.generateUUID(), correlationId)

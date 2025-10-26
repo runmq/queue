@@ -1,31 +1,20 @@
 import {RunMQPublisherCreator} from '@src/core/publisher/RunMQPublisherCreator';
-import {RunMQLogger} from '@src/core/logging/RunMQLogger';
 import {RunMQFailureLoggerProducer} from '@src/core/publisher/producers/RunMQFailureLoggerProducer';
 import {RunMQBaseProducer} from '@src/core/publisher/producers/RunMQBaseProducer';
 import {DefaultSerializer} from '@src/core/serializers/DefaultSerializer';
 import {Constants} from "@src/core/constants";
+import {MockedRunMQLogger} from "@tests/mocks/MockedRunMQLogger";
 
 jest.mock('@src/core/publisher/producers/RunMQFailureLoggerProducer');
 jest.mock('@src/core/publisher/producers/RunMQBaseProducer');
 jest.mock('@src/core/serializers/DefaultSerializer');
 
 describe('RunMQPublisherCreator Unit Tests', () => {
-    let mockLogger: jest.Mocked<RunMQLogger>;
     let publisherCreator: RunMQPublisherCreator;
 
     beforeEach(() => {
         jest.clearAllMocks();
-
-        mockLogger = {
-            info: jest.fn(),
-            warn: jest.fn(),
-            error: jest.fn(),
-            debug: jest.fn(),
-            log: jest.fn(),
-            verbose: jest.fn(),
-        };
-
-        publisherCreator = new RunMQPublisherCreator(mockLogger);
+        publisherCreator = new RunMQPublisherCreator(MockedRunMQLogger);
     });
 
     describe('createPublisher', () => {
@@ -38,7 +27,7 @@ describe('RunMQPublisherCreator Unit Tests', () => {
             );
             expect(RunMQFailureLoggerProducer).toHaveBeenCalledWith(
                 expect.any(RunMQBaseProducer),
-                mockLogger
+                MockedRunMQLogger
             );
             expect(publisher).toBeInstanceOf(RunMQFailureLoggerProducer);
         });
@@ -51,21 +40,13 @@ describe('RunMQPublisherCreator Unit Tests', () => {
         });
 
         it('should pass the correct logger to RunMQFailureLoggerProducer', () => {
-            const customLogger = {
-                info: jest.fn(),
-                warn: jest.fn(),
-                error: jest.fn(),
-                debug: jest.fn(),
-                log: jest.fn(),
-                verbose: jest.fn(),
-            };
-            const customPublisherCreator = new RunMQPublisherCreator(customLogger);
+            const customPublisherCreator = new RunMQPublisherCreator(MockedRunMQLogger);
 
             customPublisherCreator.createPublisher();
 
             expect(RunMQFailureLoggerProducer).toHaveBeenCalledWith(
                 expect.any(RunMQBaseProducer),
-                customLogger
+                MockedRunMQLogger
             );
         });
 

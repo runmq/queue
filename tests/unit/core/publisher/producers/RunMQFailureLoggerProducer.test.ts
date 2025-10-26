@@ -1,66 +1,30 @@
 import {RunMQFailureLoggerProducer} from '@src/core/publisher/producers/RunMQFailureLoggerProducer';
-import {RunMQPublisher} from '@src/types';
-import {RunMQLogger} from '@src/core/logging/RunMQLogger';
-import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
-import {RabbitMQMessageProperties} from "@src/core/message/RabbitMQMessageProperties";
-import {Channel} from "amqplib";
+import {MockedRabbitMQPublisher} from "@tests/mocks/MockedRunMQPublisher";
+import {MockedRunMQLogger} from "@tests/mocks/MockedRunMQLogger";
+import {MockedRabbitMQMessage} from "@tests/mocks/MockedRabbitMQMessage";
 
 describe('RunMQFailureLoggerProducer Unit Tests', () => {
-    let mockProducer: jest.Mocked<RunMQPublisher>;
-    let mockLogger: jest.Mocked<RunMQLogger>;
-    let failureLoggerProducer: RunMQFailureLoggerProducer;
-    let mockChannel: jest.Mocked<Channel>;
-
-    beforeEach(() => {
-        jest.clearAllMocks();
-
-        mockProducer = {
-            publish: jest.fn()
-        };
-
-        mockChannel = {
-            publish: jest.fn()
-        } as any;
-
-
-        mockLogger = {
-            info: jest.fn(),
-            warn: jest.fn(),
-            error: jest.fn(),
-            debug: jest.fn(),
-            log: jest.fn(),
-            verbose: jest.fn(),
-        };
-
-        failureLoggerProducer = new RunMQFailureLoggerProducer(mockProducer, mockLogger);
-    });
+    const mockProducer = new MockedRabbitMQPublisher();
+    const failureLoggerProducer: RunMQFailureLoggerProducer = new RunMQFailureLoggerProducer(
+        mockProducer,
+        MockedRunMQLogger
+    );
 
     describe('publish', () => {
         it('should delegate to wrapped producer when publish succeeds', () => {
             const testTopic = 'test.topic';
-            const testMessage = RabbitMQMessage.from(
-                {name: 'Test Message'},
-                mockChannel,
-                new RabbitMQMessageProperties(
-                    "id",
-                    "correlation-id"
-                ));
+            const testMessage = MockedRabbitMQMessage;
 
             failureLoggerProducer.publish(testTopic, testMessage);
 
             expect(mockProducer.publish).toHaveBeenCalledWith(testTopic, testMessage);
-            expect(mockLogger.error).not.toHaveBeenCalled();
+            expect(MockedRunMQLogger.error).not.toHaveBeenCalled();
         });
 
         it('should log error and rethrow when publish fails', () => {
             const testTopic = 'test.topic';
-            const testMessage = RabbitMQMessage.from(
-                {name: 'Test Message'},
-                mockChannel,
-                new RabbitMQMessageProperties(
-                    "id",
-                    "correlation-id"
-                ));
+            const testMessage = MockedRabbitMQMessage;
+
             const publishError = new Error('Publish failed');
 
             mockProducer.publish.mockImplementation(() => {
@@ -72,7 +36,7 @@ describe('RunMQFailureLoggerProducer Unit Tests', () => {
             }).toThrow('Publish failed');
 
             expect(mockProducer.publish).toHaveBeenCalledWith(testTopic, testMessage);
-            expect(mockLogger.error).toHaveBeenCalledWith(
+            expect(MockedRunMQLogger.error).toHaveBeenCalledWith(
                 'Message publishing failed',
                 {
                     message: testMessage,
@@ -84,13 +48,8 @@ describe('RunMQFailureLoggerProducer Unit Tests', () => {
 
         it('should handle non-Error exceptions', () => {
             const testTopic = 'test.topic';
-            const testMessage = RabbitMQMessage.from(
-                {name: 'Test Message'},
-                mockChannel,
-                new RabbitMQMessageProperties(
-                    "id",
-                    "correlation-id"
-                ));
+            const testMessage = MockedRabbitMQMessage;
+
             const publishError = 'String error';
 
             mockProducer.publish.mockImplementation(() => {
@@ -101,7 +60,7 @@ describe('RunMQFailureLoggerProducer Unit Tests', () => {
                 failureLoggerProducer.publish(testTopic, testMessage);
             }).toThrow('String error');
 
-            expect(mockLogger.error).toHaveBeenCalledWith(
+            expect(MockedRunMQLogger.error).toHaveBeenCalledWith(
                 'Message publishing failed',
                 {
                     message: testMessage,
@@ -113,13 +72,8 @@ describe('RunMQFailureLoggerProducer Unit Tests', () => {
 
         it('should handle complex message objects in error logging', () => {
             const testTopic = 'test.topic';
-            const testMessage = RabbitMQMessage.from(
-                {name: 'Test Message'},
-                mockChannel,
-                new RabbitMQMessageProperties(
-                    "id",
-                    "correlation-id"
-                ));
+            const testMessage = MockedRabbitMQMessage;
+
             const publishError = new Error('Complex message error');
 
             mockProducer.publish.mockImplementation(() => {
@@ -130,7 +84,7 @@ describe('RunMQFailureLoggerProducer Unit Tests', () => {
                 failureLoggerProducer.publish(testTopic, testMessage);
             }).toThrow('Complex message error');
 
-            expect(mockLogger.error).toHaveBeenCalledWith(
+            expect(MockedRunMQLogger.error).toHaveBeenCalledWith(
                 'Message publishing failed',
                 {
                     message: testMessage,
@@ -142,13 +96,8 @@ describe('RunMQFailureLoggerProducer Unit Tests', () => {
 
         it('should handle null/undefined message content in error logging', () => {
             const testTopic = 'test.topic';
-            const testMessage = RabbitMQMessage.from(
-                {name: 'Test Message'},
-                mockChannel,
-                new RabbitMQMessageProperties(
-                    "id",
-                    "correlation-id"
-                ));
+            const testMessage = MockedRabbitMQMessage;
+
             const publishError = new Error('Null message error');
 
             mockProducer.publish.mockImplementation(() => {
@@ -159,7 +108,7 @@ describe('RunMQFailureLoggerProducer Unit Tests', () => {
                 failureLoggerProducer.publish(testTopic, testMessage);
             }).toThrow('Null message error');
 
-            expect(mockLogger.error).toHaveBeenCalledWith(
+            expect(MockedRunMQLogger.error).toHaveBeenCalledWith(
                 'Message publishing failed',
                 {
                     message: testMessage,
@@ -171,13 +120,8 @@ describe('RunMQFailureLoggerProducer Unit Tests', () => {
 
         it('should preserve original error when rethrowing', () => {
             const testTopic = 'test.topic';
-            const testMessage = RabbitMQMessage.from(
-                {name: 'Test Message'},
-                mockChannel,
-                new RabbitMQMessageProperties(
-                    "id",
-                    "correlation-id"
-                ));
+            const testMessage = MockedRabbitMQMessage;
+
             const originalError = new Error('Original error');
             originalError.name = 'CustomError';
 
@@ -189,7 +133,7 @@ describe('RunMQFailureLoggerProducer Unit Tests', () => {
                 failureLoggerProducer.publish(testTopic, testMessage);
             }).toThrow(originalError);
 
-            expect(mockLogger.error).toHaveBeenCalledWith(
+            expect(MockedRunMQLogger.error).toHaveBeenCalledWith(
                 'Message publishing failed',
                 {
                     message: testMessage,

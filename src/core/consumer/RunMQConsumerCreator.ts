@@ -15,11 +15,12 @@ import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 import {DefaultDeserializer} from "@src/core/serializers/deserializer/DefaultDeserializer";
 import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
 import {RunMQPublisherCreator} from "@src/core/publisher/RunMQPublisherCreator";
+import {AMQPClient} from "@src/types";
 
 export class RunMQConsumerCreator {
     constructor(
         private defaultChannel: Channel,
-        private client: AmqplibClient,
+        private client: AMQPClient,
         private logger: RunMQLogger,
     ) {
     }

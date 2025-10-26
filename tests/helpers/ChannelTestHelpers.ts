@@ -1,4 +1,5 @@
 import {Constants} from "@src/core/constants";
+import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
 
 export class ChannelTestHelpers {
     private static defaultWait: number = 500;
@@ -11,7 +12,7 @@ export class ChannelTestHelpers {
 
     static async deleteQueue(channel: any, queueName: string): Promise<void> {
         await channel.deleteQueue(queueName);
-        await channel.deleteQueue(Constants.DLQ_QUEUE_PREFIX + queueName);
-        await channel.deleteQueue(Constants.RETRY_DELAY_QUEUE_PREFIX + queueName);
+        await channel.deleteQueue(ConsumerCreatorUtils.getDLQTopicName(queueName));
+        await channel.deleteQueue(ConsumerCreatorUtils.getRetryDelayTopicName(queueName));
     }
 }
