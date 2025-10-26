@@ -11,6 +11,7 @@ import {RunMQConnectionConfigExample} from "@tests/Examples/RunMQConnectionConfi
 import {RunMQProcessorConfigurationExample} from "@tests/Examples/RunMQProcessorConfigurationExample";
 import {MessageExample} from "@tests/Examples/MessageExample";
 import {MessageTestUtils} from "@tests/helpers/MessageTestUtils";
+import {RunMQMessage} from "@src/core/message/RunMQMessage";
 
 describe('RunMQ E2E Tests', () => {
     const validConfig = RunMQConnectionConfigExample.valid();
@@ -36,8 +37,8 @@ describe('RunMQ E2E Tests', () => {
             expect(endTime - startTime).toBeGreaterThan(invalidConfig.reconnectDelay!);
 
             await expect(RunMQ.start(invalidConfig, MockedRunMQLogger)).rejects.toMatchObject({
-              exception: Exceptions.EXCEEDING_CONNECTION_ATTEMPTS,
-                details:{
+                exception: Exceptions.EXCEEDING_CONNECTION_ATTEMPTS,
+                details: {
                     attempts: invalidConfig.maxReconnectAttempts
                 }
             })
@@ -126,6 +127,48 @@ describe('RunMQ E2E Tests', () => {
             await runMQ.disconnect();
             await testingConnection.disconnect();
         })
+    })
+
+    describe('publishing', () => {
+        it('should publish and consume a message successfully', async () => {
+            const configuration = RunMQProcessorConfigurationExample.simpleNoSchema()
+            const testingConnection = new AmqplibClient(validConfig);
+            const channel = await testingConnection.getChannel();
+            await ChannelTestHelpers.deleteQueue(channel, configuration.name);
+
+            const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
+            const processedMessages: RunMQMessage[] = [];
+
+            await runMQ.process<TestingMessage>("user.created", configuration,
+                (message): Promise<void> => {
+                    processedMessages.push(message);
+                    return Promise.resolve();
+                }
+            )
+
+            const testMessage: TestingMessage = {name: "John Doe", age: 30};
+            runMQ.publish("user.created", testMessage);
+
+            await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, 0)
+            await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getDLQTopicName(configuration.name), 0)
+            await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getRetryDelayTopicName(configuration.name), 0)
+
+            expect(processedMessages).toHaveLength(1);
+            expect(processedMessages[0].message).toEqual(testMessage);
+
+            await runMQ.disconnect();
+            await testingConnection.disconnect();
+        })
+
+        it("should throw error when publishing invalid message", async () => {
+            const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
+
+            expect(() => {
+                runMQ.publish("user.created", "invalid message" as any);
+            }).toThrow(RunMQException);
+
+            await runMQ.disconnect();
+        });
     })
 });
 
