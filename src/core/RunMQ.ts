@@ -32,6 +32,12 @@ export class RunMQ {
         this.amqplibClient = new AmqplibClient(this.config);
     }
 
+    /**
+     * Starts the RunMQ instance by establishing a connection to RabbitMQ and initializing necessary components.
+     * @param config The configuration for the RunMQ connection @see RunMQConnectionConfig
+     * @param logger (Optional) A custom logger implementing the RunMQLogger interface; if not provided, a default console logger will be used
+     * @returns A promise that resolves to the initialized RunMQ instance
+     */
     public static async start(config: RunMQConnectionConfig, logger: RunMQLogger = new RunMQConsoleLogger): Promise<RunMQ> {
         const instance = new RunMQ(config, logger);
         await instance.connectWithRetry();
@@ -39,11 +45,23 @@ export class RunMQ {
         return instance;
     }
 
+    /**
+     * Processes messages from the specified topic using the provided processor function and configuration.
+     * @param topic The name of the topic to process messages from, it should match the name used during publishing
+     * @param config The configuration for the message processor @see RunMQProcessorConfiguration
+     * @param processor The function that will process the incoming messages
+     */
     public async process<T = Record<string, never>>(topic: string, config: RunMQProcessorConfiguration, processor: (message: RunMQMessage<T>) => Promise<void>) {
         const consumer = new RunMQConsumerCreator(this.defaultChannel!, this.amqplibClient, this.logger);
         await consumer.createConsumer<T>(new ConsumerConfiguration(topic, config, processor))
     }
 
+    /**
+     * Publishes a message to the specified topic with an optional correlation ID
+     * @param topic The name of the topic to publish the message to
+     * @param message The message payload to be published
+     * @param correlationId (Optional) A unique identifier for correlating messages; if not provided, a new UUID will be generated
+     */
     public publish(topic: string, message: Record<string, any>, correlationId: string = RunMQUtils.generateUUID()): void {
         if (!this.publisher) {
             throw new RunMQException(Exceptions.NOT_INITIALIZED, {});
@@ -58,6 +76,9 @@ export class RunMQ {
         );
     }
 
+    /**
+     * Disconnects from RabbitMQ, handling any errors that may occur during the disconnection process.
+     */
     public async disconnect(): Promise<void> {
         try {
             await this.amqplibClient.disconnect();
@@ -71,6 +92,9 @@ export class RunMQ {
         }
     }
 
+    /**
+     * Checks if the connection is currently active.
+     */
     public isActive(): boolean {
         return this.amqplibClient.isActive();
     }
