@@ -1,7 +1,6 @@
 import {Channel} from "amqplib";
 import {ConsumerConfiguration} from "@src/core/consumer/ConsumerConfiguration";
 import {Constants} from "@src/core/constants";
-import {AmqplibClient} from "@src/core/clients/AmqplibClient";
 import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
 import {
     RunMQSucceededMessageAcknowledgerProcessor
