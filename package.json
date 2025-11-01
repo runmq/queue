@@ -3,6 +3,15 @@
   "type": "module",
   "version": "0.0.1",
   "description": "A RabbitMQ-powered message processing framework for Node.js — designed for scale, precision, and reliability.",
+  "keywords": [
+    "rabbitmq",
+    "message-queue",
+    "message-broker",
+    "event-driven",
+    "task-queue",
+    "job-queue",
+    "message-processing"
+  ],
   "main": "index.js",
   "scripts": {
     "lint": "eslint .",
