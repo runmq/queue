@@ -139,7 +139,7 @@ describe('RunMQ E2E Tests', () => {
             const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
             const processedMessages: RunMQMessage[] = [];
 
-            await runMQ.process<TestingMessage>("user.created", configuration,
+            await runMQ.process<TestingMessage>("user.created.unique1", configuration,
                 (message): Promise<void> => {
                     processedMessages.push(message);
                     return Promise.resolve();
@@ -147,7 +147,7 @@ describe('RunMQ E2E Tests', () => {
             )
 
             const testMessage: TestingMessage = {name: "John Doe", age: 30};
-            runMQ.publish("user.created", testMessage);
+            runMQ.publish("user.created.unique1", testMessage);
 
             await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, 0)
             await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getDLQTopicName(configuration.name), 0)

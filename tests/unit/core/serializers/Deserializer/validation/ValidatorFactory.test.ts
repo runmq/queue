@@ -25,7 +25,7 @@ describe("ValidatorFactory", () => {
 
         it("should throw error for unsupported schema type", () => {
             // @ts-expect-error - Testing invalid schema type
-            expect(() => getValidator<TestData>("unsupported")).toThrow("Unsupported schema type: unsupported");
+            expect(() => getValidator<TestData>("unsupported")).toThrow("RunMQ Exception: UNSUPPORTED_SCHEM");
         });
 
         it("should return working validator for ajv type", () => {

@@ -13,9 +13,9 @@ export class RunMQExceptionLoggerProcessor implements RunMQConsumer {
                 this.logger.error(e.message, e.stack);
                 throw e;
             } else {
-                const stringified = JSON.stringify(e);
-                this.logger.error(stringified);
-                throw new Error(stringified);
+                const errorString = JSON.stringify(e);
+                this.logger.error(errorString);
+                throw new Error(errorString);
             }
         }
     }
