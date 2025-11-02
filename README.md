@@ -2,9 +2,9 @@
 
 RunMQ is a reliable message queue library for Node.js built on top of RabbitMQ. Supports async background processing and event-driven messaging for microservices, with automatic retries, schema validation, and DLQ.
 
-RunMQ can be used to implement two main patterns:
-- **Event Bus** for event-driven microservices architectures, where multiple services independently react to the same events
-- **Job Queue** for async background task processing, with retries and dead letter queues
+RunMQ can be used to implement multiple messaging or jobs processing patterns:
+- **Event Bus** for event-driven architectures, where multiple services independently react to the same events
+- **Job Queue** for async background task processing
 
 ## Features
 
