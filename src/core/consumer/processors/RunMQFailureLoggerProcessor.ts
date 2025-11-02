@@ -11,10 +11,9 @@ export class RunMQFailureLoggerProcessor implements RunMQConsumer {
             return await this.consumer.consume(message);
         } catch (e) {
             this.logger.error('Message processing failed', {
-                message: message.message,
-                error: e instanceof Error ? e.message : JSON.stringify(e),
-                stack: e instanceof Error ? e.stack : undefined,
-            });
+                    message: message.message,
+                },
+                e instanceof Error ? e.stack : undefined);
             throw e;
         }
     }

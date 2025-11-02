@@ -4,7 +4,7 @@ import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
 
 export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
-    private readonly maxRetryCount: number = this.config.maxRetries ?? 1;
+    private readonly maxRetryCount: number = this.config.attempts ?? 1;
 
     constructor(
         private readonly consumer: RunMQConsumer,
@@ -35,9 +35,9 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
 
     private logMaxRetriesReached(message: RabbitMQMessage) {
         this.logger.error(
-            `Message reached maximum retries. Moving to dead-letter queue.`, {
-                message: JSON.stringify(message.message),
-                retries: this.getRejectionCount(message),
+            `Message reached maximum attempts. Moving to dead-letter queue.`, {
+                message: message.message,
+                attempts: this.getRejectionCount(message),
                 max: this.maxRetryCount,
             }
         );
@@ -59,8 +59,8 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
 
     private getRejectionCount(message: RabbitMQMessage): number {
         const xDeath = message.headers?.["x-death"];
-        if (!Array.isArray(xDeath)) return 0;
+        if (!Array.isArray(xDeath)) return 1;
         const deathRecord = xDeath.filter(entry => entry && entry.reason == 'rejected')[0];
-        return deathRecord ? deathRecord.count + 1 : 0;
+        return deathRecord ? deathRecord.count + 1 : 1;
     }
 }

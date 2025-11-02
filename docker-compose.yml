@@ -12,7 +12,7 @@ services:
       test: rabbitmq-diagnostics -q ping
       interval: 30s
       timeout: 10s
-      retries: 5
+      attempts: 5
       start_period: 40s
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq

@@ -9,7 +9,7 @@ import {RunMQMessage} from "@src/core/message/RunMQMessage";
 describe("DefaultDeserializer", () => {
     const testProcessorConfig: RunMQProcessorConfiguration = {
         name: 'testProcessor',
-        maxRetries: 3,
+        attempts: 3,
         consumersCount: 2,
         retryDelay: 5000,
     };

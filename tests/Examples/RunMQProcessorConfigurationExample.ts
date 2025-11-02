@@ -5,14 +5,14 @@ export class RunMQProcessorConfigurationExample {
     static random(
         name: string = faker.lorem.word(),
         consumersCount = faker.number.int({min: 1, max: 10}),
-        maxRetries = faker.number.int({min: 0, max: 10}),
+        attempts = faker.number.int({min: 0, max: 10}),
         retryDelay = faker.number.int({min: 10, max: 1000}),
         messageSchema = MessageSchemaExample.random()
     ): RunMQProcessorConfiguration {
         return {
             name,
             consumersCount,
-            maxRetries,
+            attempts,
             retryDelay,
             messageSchema,
         }
@@ -30,21 +30,21 @@ export class RunMQProcessorConfigurationExample {
         );
     }
 
-    static simpleWithPersonSchema(maxRetries: number = 3): RunMQProcessorConfiguration {
+    static simpleWithPersonSchema(attempts: number = 3): RunMQProcessorConfiguration {
         return this.random(
             'person_processor',
             1,
-            maxRetries,
+            attempts,
             100,
             MessageSchemaExample.simplePersonSchema()
         )
     }
 
-    static withMaxRetries(maxRetries: number): RunMQProcessorConfiguration {
+    static withAttempts(attempts: number): RunMQProcessorConfiguration {
         return this.random(
             faker.lorem.word(),
             1,
-            maxRetries,
+            attempts,
             100,
             MessageSchemaExample.simplePersonSchema()
         )

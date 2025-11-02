@@ -41,9 +41,9 @@ export interface RunMQProcessorConfiguration {
      */
     consumersCount: number;
     /**
-     * The maximum number of retry attempts for processing a message.
+     * The maximum number attempts processing a message, default is 1 attempt.
      */
-    maxRetries?: number;
+    attempts?: number;
     /**
      * The delay in milliseconds between retry attempts.
      */

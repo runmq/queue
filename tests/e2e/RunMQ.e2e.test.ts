@@ -117,10 +117,10 @@ describe('RunMQ E2E Tests', () => {
             await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, 0)
             await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getRetryDelayTopicName(configuration.name), 0)
 
-            await LoggerTestHelpers.assertLoggedWithCount(MockedRunMQLogger.error, 'Message processing failed', configuration.maxRetries as number)
-            await LoggerTestHelpers.assertLoggedWithCountAndParameters(MockedRunMQLogger.error, 'Message reached maximum retries. Moving to dead-letter queue.', {
-                    retries: configuration.maxRetries,
-                    max: configuration.maxRetries,
+            await LoggerTestHelpers.assertLoggedWithCount(MockedRunMQLogger.error, 'Message processing failed', configuration.attempts as number)
+            await LoggerTestHelpers.assertLoggedWithCountAndParameters(MockedRunMQLogger.error, 'Message reached maximum attempts. Moving to dead-letter queue.', {
+                    attempts: configuration.attempts,
+                    max: configuration.attempts,
                 },
                 1
             )

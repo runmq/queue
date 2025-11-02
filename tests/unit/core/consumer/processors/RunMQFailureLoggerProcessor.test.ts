@@ -11,9 +11,8 @@ describe('RunMQFailureLoggerProcessor', () => {
         await expect(processor.consume(MockedRabbitMQMessage)).rejects.toThrow("Mocked error");
 
         expect(MockedRunMQLogger.error).toHaveBeenCalledWith('Message processing failed', {
-            message: MockedRabbitMQMessage.message,
-            error: "Mocked error",
-            stack: expect.any(String),
-        });
+                message: MockedRabbitMQMessage.message,
+            },
+            expect.any(String));
     });
 })

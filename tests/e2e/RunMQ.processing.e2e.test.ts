@@ -72,7 +72,36 @@ describe('RunMQ E2E Tests', () => {
             await testingConnection.disconnect();
         })
 
-        it('Should retry processing errors up to maxRetries before sending to DLQ', async () => {
+        it('Should try processing only once if attempts is one', async () => {
+            const configuration = RunMQProcessorConfigurationExample.simpleWithPersonSchema(1);
+
+
+            const channel = await testingConnection.getChannel();
+            await ChannelTestHelpers.deleteQueue(channel, configuration.name);
+
+            const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
+            let attemptCount = 0;
+            await runMQ.process<TestingMessage>("user.created", configuration,
+                () => {
+                    attemptCount++;
+                    throw new Error("Processing failed");
+                }
+            )
+
+            channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'user.created', MessageTestUtils.buffer(RunMQMessageExample.person()))
+
+
+            await RunMQUtils.delay(500);
+            expect(attemptCount).toBe(1);
+
+            await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getDLQTopicName(configuration.name), 1)
+            await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, 0)
+            await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getRetryDelayTopicName(configuration.name), 0)
+            await runMQ.disconnect();
+            await testingConnection.disconnect();
+        })
+
+        it('Should retry processing errors up to attempts before sending to DLQ', async () => {
             const configuration = RunMQProcessorConfigurationExample.simpleWithPersonSchema(2);
 
 
@@ -130,7 +159,7 @@ describe('RunMQ E2E Tests', () => {
             await testingConnection.disconnect();
         })
 
-        it('Should respect retry delay timing between retries', async () => {
+        it('Should respect retry delay timing between attempts', async () => {
             const configuration = RunMQProcessorConfigurationExample.random(
                 "timingTestConsumer",
                 1,
