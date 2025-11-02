@@ -41,8 +41,8 @@ Publisher → Topic (user.created)
 **Key Benefits:**
 - Services remain independent and isolated
 - Each service can fail/retry without affecting others
-- Easy to add new services by subscribing to existing events
-- Natural implementation of CQRS and event sourcing patterns
+- Easy to add new services or processors by subscribing to existing topics
+- Scalable with multiple concurrent workers
 
 ### 2. Background Processing Pattern
 
@@ -56,7 +56,7 @@ Publisher → Topic (email.send) → Queue: emailWorker → DLQ: emailWorker_dlq
 - Simple async job processing
 - Automatic retries for failed jobs
 - Scalable with multiple concurrent workers
-- Dead letter queue for failed job analysis
+- Dead letter queue for failed jobs
 
 ## Quick Start
 
@@ -194,7 +194,8 @@ await runMQ.process<UserCreatedEvent>('user.created', {
 
 ### Scenario: Background Email Processing
 
-Use RunMQ for async job processing with a single worker service.
+The other common pattern is using RunMQ as a job queue for background processing tasks.
+Where there's a publisher queuing jobs, and a worker service processing them asynchronously with retries and DLQ support.
 
 ```typescript
 import { RunMQ, RunMQMessage } from 'runmq';
@@ -279,59 +280,7 @@ API Request → Publish Job → Queue (emailWorker)
                       [Final Failure] → DLQ (emailWorker_dlq)
 ```
 
-## Advanced Examples
-
-### Event Choreography with Multiple Events
-
-Build complex workflows by publishing new events from processors:
-
-```typescript
-// Order Service - publishes order.placed
-await runMQ.process('order.placed', {
-  name: 'paymentService',
-  consumersCount: 2,
-  attempts: 3
-}, async (message) => {
-  const payment = await processPayment(message.message);
-  
-  if (payment.success) {
-    // Trigger next event in the workflow
-    runMQ.publish('payment.completed', {
-      orderId: message.message.orderId,
-      paymentId: payment.id,
-      amount: payment.amount
-    }, message.meta.correlationId);  // Preserve correlation ID
-  }
-});
-
-// Inventory Service - reacts to payment.completed
-await runMQ.process('payment.completed', {
-  name: 'inventoryService',
-  consumersCount: 3,
-  attempts: 5
-}, async (message) => {
-  await reserveInventory(message.message.orderId);
-  
-  // Trigger next step
-  runMQ.publish('inventory.reserved', {
-    orderId: message.message.orderId
-  }, message.meta.correlationId);
-});
-
-// Shipping Service - reacts to inventory.reserved
-await runMQ.process('inventory.reserved', {
-  name: 'shippingService',
-  consumersCount: 2,
-  attempts: 3
-}, async (message) => {
-  await scheduleShipment(message.message.orderId);
-  
-  runMQ.publish('order.fulfilled', {
-    orderId: message.message.orderId,
-    fulfilledAt: new Date().toISOString()
-  }, message.meta.correlationId);
-});
-```
+## Features in Detail
 
 ### Schema Validation
 
@@ -376,6 +325,48 @@ await runMQ.process('order.placed', {
   // Message is guaranteed to be valid
   await processOrder(message.message);
 });
+```
+
+### Queue Isolation and Naming
+
+**Important:** Each processor creates an isolated queue based on its `name` parameter:
+
+- Queue name: `{processor.name}`
+- DLQ name: `{processor.name}_dlq`
+
+This ensures:
+- ✅ Processors can't interfere with each other
+- ✅ Each processor controls its own retry logic
+- ✅ Failed messages are isolated per processor
+- ✅ Easy to monitor and debug per-processor queues
+
+Example:
+```typescript
+// Creates queue: userEmailService and userEmailService_dlq
+await runMQ.process('user.created', { name: 'userEmailService', ... }, handler);
+
+// Creates queue: userAnalytics and userAnalytics_dlq
+await runMQ.process('user.created', { name: 'userAnalytics', ... }, handler);
+```
+
+### Custom Logger
+
+The default loger uses console, but you can implement your own logger by implementing the `RunMQLogger` interface:
+
+```typescript
+import { RunMQLogger } from 'runmq';
+
+class CustomLogger implements RunMQLogger {
+  log(message: string): void {
+    // Your logging implementation
+  }
+  
+  error(message: string, error?: any): void {
+    // Your error logging implementation
+  }
+}
+
+const runMQ = await RunMQ.start(config, new CustomLogger());
 ```
 
 ## Configuration
@@ -423,46 +414,6 @@ interface RunMQMessageContent<T> {
     correlationId: string;       // The correlation identifier.
   }
 }
-```
-
-## Queue Isolation and Naming
-
-**Important:** Each processor creates an isolated queue based on its `name` parameter:
-
-- Queue name: `{processor.name}`
-- DLQ name: `{processor.name}_dlq`
-
-This ensures:
-- ✅ Processors can't interfere with each other
-- ✅ Each processor controls its own retry logic
-- ✅ Failed messages are isolated per processor
-- ✅ Easy to monitor and debug per-processor queues
-
-Example:
-```typescript
-// Creates queue: userEmailService and userEmailService_dlq
-await runMQ.process('user.created', { name: 'userEmailService', ... }, handler);
-
-// Creates queue: userAnalytics and userAnalytics_dlq
-await runMQ.process('user.created', { name: 'userAnalytics', ... }, handler);
-```
-
-## Custom Logger
-
-```typescript
-import { RunMQLogger } from 'runmq';
-
-class CustomLogger implements RunMQLogger {
-  log(message: string): void {
-    // Your logging implementation
-  }
-  
-  error(message: string, error?: any): void {
-    // Your error logging implementation
-  }
-}
-
-const runMQ = await RunMQ.start(config, new CustomLogger());
 ```
 
 ## License
