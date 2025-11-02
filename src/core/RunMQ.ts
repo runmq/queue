@@ -1,10 +1,9 @@
-import {RunMQProcessorConfiguration, RunMQConnectionConfig, RunMQPublisher} from "@src/types";
+import {RunMQProcessorConfiguration, RunMQConnectionConfig, RunMQPublisher, RunMQMessageContent} from "@src/types";
 import {RunMQException} from "@src/core/exceptions/RunMQException";
 import {AmqplibClient} from "@src/core/clients/AmqplibClient";
 import {Exceptions} from "@src/core/exceptions/Exceptions";
 import {RunMQUtils} from "@src/core/utils/Utils";
-import {Constants} from "@src/core/constants";
-import {RunMQMessage} from "@src/core/message/RunMQMessage"
+import {Constants, DEFAULTS} from "@src/core/constants";
 import {Channel} from "amqplib";
 import {RunMQConsumerCreator} from "@src/core/consumer/RunMQConsumerCreator";
 import {ConsumerConfiguration} from "@src/core/consumer/ConsumerConfiguration";
@@ -26,8 +25,8 @@ export class RunMQ {
         this.logger = logger;
         this.config = {
             ...config,
-            reconnectDelay: config.reconnectDelay ?? 5000,
-            maxReconnectAttempts: config.maxReconnectAttempts ?? 5
+            reconnectDelay: config.reconnectDelay ?? DEFAULTS.RECONNECT_DELAY,
+            maxReconnectAttempts: config.maxReconnectAttempts ?? DEFAULTS.MAX_RECONNECT_ATTEMPTS,
         };
         this.amqplibClient = new AmqplibClient(this.config);
     }
@@ -51,7 +50,7 @@ export class RunMQ {
      * @param config The configuration for the message processor @see RunMQProcessorConfiguration
      * @param processor The function that will process the incoming messages
      */
-    public async process<T = Record<string, never>>(topic: string, config: RunMQProcessorConfiguration, processor: (message: RunMQMessage<T>) => Promise<void>) {
+    public async process<T = Record<string, never>>(topic: string, config: RunMQProcessorConfiguration, processor: (message: RunMQMessageContent<T>) => Promise<void>) {
         const consumer = new RunMQConsumerCreator(this.defaultChannel!, this.amqplibClient, this.logger);
         await consumer.createConsumer<T>(new ConsumerConfiguration(topic, config, processor))
     }
@@ -74,6 +73,11 @@ export class RunMQ {
                 new RabbitMQMessageProperties(RunMQUtils.generateUUID(), correlationId)
             )
         );
+        this.logger.info(`Published message`, {
+            topic,
+            correlationId,
+            message,
+        });
     }
 
     /**

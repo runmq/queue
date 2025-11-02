@@ -6,14 +6,14 @@ export class RunMQProcessorConfigurationExample {
         name: string = faker.lorem.word(),
         consumersCount = faker.number.int({min: 1, max: 10}),
         attempts = faker.number.int({min: 0, max: 10}),
-        retryDelay = faker.number.int({min: 10, max: 1000}),
+        attemptsDelay = faker.number.int({min: 10, max: 1000}),
         messageSchema = MessageSchemaExample.random()
     ): RunMQProcessorConfiguration {
         return {
             name,
             consumersCount,
             attempts,
-            retryDelay,
+            attemptsDelay,
             messageSchema,
         }
     }

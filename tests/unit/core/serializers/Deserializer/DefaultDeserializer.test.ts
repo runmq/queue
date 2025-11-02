@@ -11,7 +11,7 @@ describe("DefaultDeserializer", () => {
         name: 'testProcessor',
         attempts: 3,
         consumersCount: 2,
-        retryDelay: 5000,
+        attemptsDelay: 5000,
     };
 
     describe('deserialize', () => {

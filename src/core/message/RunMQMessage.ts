@@ -1,4 +1,6 @@
-export class RunMQMessage<T = any> {
+import {RunMQMessageContent, RunMQMessageMetaContent} from "@src/types";
+
+export class RunMQMessage<T = any> implements RunMQMessageContent<T> {
     public static isValid(obj: any) {
         if (typeof obj === "object" && obj !== null) {
             return 'message' in obj && 'meta' in obj &&
@@ -26,7 +28,7 @@ export class RunMQMessage<T = any> {
     }
 }
 
-export class RunMQMessageMeta {
+export class RunMQMessageMeta implements RunMQMessageMetaContent {
     readonly id: string;
     readonly publishedAt: number;
     readonly correlationId: string;

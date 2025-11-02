@@ -1,6 +1,6 @@
 import {Channel} from "amqplib";
 import {ConsumerConfiguration} from "@src/core/consumer/ConsumerConfiguration";
-import {Constants} from "@src/core/constants";
+import {Constants, DEFAULTS} from "@src/core/constants";
 import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
 import {
     RunMQSucceededMessageAcknowledgerProcessor
@@ -38,7 +38,7 @@ export class RunMQConsumerCreator {
         const consumerChannel = await this.getProcessorChannel();
         const DLQPublisher = new RunMQPublisherCreator(this.logger).createPublisher(Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME);
 
-        await consumerChannel.prefetch(10);
+        await consumerChannel.prefetch(DEFAULTS.PREFETCH_COUNT);
         await consumerChannel.consume(consumerConfiguration.processorConfig.name, async (msg) => {
             if (msg) {
                 const rabbitmqMessage = new RabbitMQMessage(
@@ -81,7 +81,7 @@ export class RunMQConsumerCreator {
         await this.defaultChannel.assertQueue(ConsumerCreatorUtils.getRetryDelayTopicName(consumerConfiguration.processorConfig.name), {
             durable: true,
             deadLetterExchange: Constants.ROUTER_EXCHANGE_NAME,
-            messageTtl: consumerConfiguration.processorConfig.retryDelay
+            messageTtl: consumerConfiguration.processorConfig.attemptsDelay ?? DEFAULTS.PROCESSING_RETRY_DELAY,
         });
         await this.defaultChannel.assertQueue(ConsumerCreatorUtils.getDLQTopicName(consumerConfiguration.processorConfig.name), {
             durable: true,

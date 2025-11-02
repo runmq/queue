@@ -42,7 +42,7 @@ describe('RunMQConsumerCreator Unit Tests', () => {
                 {
                     durable: true,
                     deadLetterExchange: Constants.ROUTER_EXCHANGE_NAME,
-                    messageTtl: testProcessorConfig.retryDelay
+                    messageTtl: testProcessorConfig.attemptsDelay
                 }
             );
 

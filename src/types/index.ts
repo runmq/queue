@@ -47,13 +47,40 @@ export interface RunMQProcessorConfiguration {
     /**
      * The delay in milliseconds between retry attempts.
      */
-    retryDelay?: number;
+    attemptsDelay?: number;
     /**
      * The schema configuration for message validation.
      * if not provided, no schema validation will be performed.
      * @see MessageSchema
      */
     messageSchema?: MessageSchema
+}
+
+export interface RunMQMessageContent<T = any> {
+    /**
+     * The actual message payload.
+     */
+    message: T;
+    /**
+     * Metadata associated with the message.
+     * @see RunMQMessageMetaContent
+     */
+    meta: RunMQMessageMetaContent;
+}
+
+export interface RunMQMessageMetaContent {
+    /**
+     * The unique identifier of the message.
+     */
+    id: string;
+    /**
+     * The timestamp when the message was published.
+     */
+    publishedAt: number;
+    /**
+     * The correlation identifier.
+     */
+    correlationId: string;
 }
 
 export interface MessageSchema {

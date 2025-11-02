@@ -5,3 +5,11 @@ export const Constants = {
     RETRY_DELAY_QUEUE_PREFIX: RUNMQ_PREFIX + "retry_delay_",
     DLQ_QUEUE_PREFIX: RUNMQ_PREFIX + "dlq_",
 }
+
+export const DEFAULTS = {
+    RECONNECT_DELAY: 5000,
+    MAX_RECONNECT_ATTEMPTS: 5,
+    PREFETCH_COUNT: 10,
+    PROCESSING_ATTEMPTS: 1,
+    PROCESSING_RETRY_DELAY: 1000,
+}

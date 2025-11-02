@@ -72,6 +72,35 @@ describe('RunMQ E2E Tests', () => {
             await testingConnection.disconnect();
         })
 
+        it('Should should process up to attempts even if retry delay is not specified', async () => {
+            const configuration = RunMQProcessorConfigurationExample.simpleWithPersonSchema(2);
+
+
+            const channel = await testingConnection.getChannel();
+            await ChannelTestHelpers.deleteQueue(channel, configuration.name);
+
+            const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
+            let attemptCount = 0;
+            await runMQ.process<TestingMessage>("user.created", configuration,
+                () => {
+                    attemptCount++;
+                    throw new Error("Processing failed");
+                }
+            )
+
+            channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'user.created', MessageTestUtils.buffer(RunMQMessageExample.person()))
+
+
+            await RunMQUtils.delay(500);
+            expect(attemptCount).toBe(2);
+
+            await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getDLQTopicName(configuration.name), 1)
+            await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, 0)
+            await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getRetryDelayTopicName(configuration.name), 0)
+            await runMQ.disconnect();
+            await testingConnection.disconnect();
+        })
+
         it('Should try processing only once if attempts is one', async () => {
             const configuration = RunMQProcessorConfigurationExample.simpleWithPersonSchema(1);
 
