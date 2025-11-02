@@ -1,7 +1,7 @@
 {
   "name": "runmq",
   "type": "module",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "RunMQ is a robust message queue library for Node.js built on RabbitMQ. Enables async background processing, or event-driven architectures via message bus — both with automatic retries, schema validation and DLQ.",
   "keywords": [
     "rabbitmq",
