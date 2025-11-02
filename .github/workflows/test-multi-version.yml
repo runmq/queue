@@ -24,66 +24,65 @@ jobs:
     name: Test RabbitMQ ${{ matrix.rabbitmq-version }}
     
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Set RabbitMQ version
-      run: echo "RABBITMQ_VERSION=${{ matrix.rabbitmq-version }}" >> $GITHUB_ENV
-    
-    - name: Start RabbitMQ
-      run: docker-compose up -d rabbitmq
-    
-    - name: Wait for RabbitMQ to be ready
-      run: |
-        RETRY_COUNT=0
-        MAX_RETRIES=30
-        
-        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-          if docker-compose exec -T rabbitmq rabbitmq-diagnostics -q ping >/dev/null 2>&1; then
-            echo "RabbitMQ is ready!"
-            break
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set RabbitMQ version
+        run: echo "RABBITMQ_VERSION=${{ matrix.rabbitmq-version }}" >> $GITHUB_ENV
+
+      - name: Start RabbitMQ
+        run: docker compose up -d rabbitmq
+
+      - name: Wait for RabbitMQ to be ready
+        run: |
+          RETRY_COUNT=0
+          MAX_RETRIES=30
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if docker compose exec -T rabbitmq rabbitmq-diagnostics -q ping >/dev/null 2>&1; then
+              echo "RabbitMQ is ready!"
+              break
+            fi
+          
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "Waiting for RabbitMQ... (attempt $RETRY_COUNT/$MAX_RETRIES)"
+          
+            # Check if container exited and restart if needed
+            CONTAINER_STATUS=$(docker compose ps -q rabbitmq | xargs docker inspect -f '{{.State.Status}}' 2>/dev/null || echo "")
+            if [ "$CONTAINER_STATUS" = "exited" ] || [ "$CONTAINER_STATUS" = "" ]; then
+              echo "RabbitMQ container exited. Restarting..."
+              docker compose up -d rabbitmq
+            fi
+          
+            sleep 2
+          done
+          
+          if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+            echo "RabbitMQ failed to start"
+            docker compose logs rabbitmq
+            exit 1
           fi
-          
-          RETRY_COUNT=$((RETRY_COUNT + 1))
-          echo "Waiting for RabbitMQ... (attempt $RETRY_COUNT/$MAX_RETRIES)"
-          
-          # Check if container exited and restart if needed
-          CONTAINER_STATUS=$(docker-compose ps -q rabbitmq | xargs docker inspect -f '{{.State.Status}}' 2>/dev/null || echo "")
-          if [ "$CONTAINER_STATUS" = "exited" ] || [ "$CONTAINER_STATUS" = "" ]; then
-            echo "RabbitMQ container exited. Restarting..."
-            docker-compose up -d rabbitmq
-          fi
-          
-          sleep 2
-        done
-        
-        if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-          echo "RabbitMQ failed to start"
-          docker-compose logs rabbitmq
-          exit 1
-        fi
-    
-    - name: Run unit tests
-      run: npm run test:unit
-    
-    - name: Run E2E tests
-      run: npm run test:e2e
-    
-    - name: Show logs on failure
-      if: failure()
-      run: docker-compose logs rabbitmq
-    
-    - name: Clean up
-      if: always()
-      run: docker-compose down -v
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs rabbitmq
+
+      - name: Clean up
+        if: always()
+        run: docker compose down -v
 
   all-tests-summary:
     needs: test-matrix
@@ -91,12 +90,12 @@ jobs:
     if: always()
     
     steps:
-    - name: Check test results
-      run: |
-        if [ "${{ needs.test-matrix.result }}" == "success" ]; then
-          echo "✅ All RabbitMQ version tests passed!"
-          exit 0
-        else
-          echo "❌ Some RabbitMQ version tests failed"
-          exit 1
-        fi
+      - name: Check test results
+        run: |
+          if [ "${{ needs.test-matrix.result }}" == "success" ]; then
+            echo "✅ All RabbitMQ version tests passed!"
+            exit 0
+          else
+            echo "❌ Some RabbitMQ version tests failed"
+            exit 1
+          fi
