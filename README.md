@@ -171,21 +171,6 @@ runMQ.publish('user.created', {
 // All three services receive the event independently!
 ```
 
-### How It Works Behind the Scenes
-
-When you publish to `user.created`:
-
-1. **RunMQ Publishes the message to the router exchange with routing key** `user.created`
-2. **Each processor has its own queue**:
-    - `emailService` queue (+ `emailService_dlq`)
-    - `analyticsService` queue (+ `analyticsService_dlq`)
-    - `notificationService` queue (+ `notificationService_dlq`)
-3. **All queues bind to the exchange** - each receives a copy of every event
-4. **Services process independently**:
-    - If Email Service fails, it retries independently
-    - Analytics Service keeps processing unaffected
-    - Each service has its own DLQ for permanently failed messages
-
 ### Adding a New Processor
 
 Want to add a new service? Just subscribe to existing events:
