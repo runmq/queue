@@ -32,7 +32,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Set RabbitMQ version
         run: echo "RABBITMQ_VERSION=${{ matrix.rabbitmq-version }}" >> $GITHUB_ENV
