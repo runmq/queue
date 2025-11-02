@@ -1,6 +1,6 @@
 services:
   rabbitmq:
-    image: rabbitmq:3.12-management
+    image: rabbitmq:${RABBITMQ_VERSION:-3.12-management}
     container_name: runmq-rabbitmq-test
     ports:
       - "5673:5672"
@@ -12,7 +12,6 @@ services:
       test: rabbitmq-diagnostics -q ping
       interval: 30s
       timeout: 10s
-      attempts: 5
       start_period: 40s
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
