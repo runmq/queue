@@ -28,7 +28,6 @@ export class AmqplibClient implements AMQPClient {
                 });
 
                 this.channelModel.on('close', () => {
-                    // TODO:: ensure safe close (publishers/consumers closed)
                     this.isConnected = false;
                 });
             }
@@ -38,7 +37,7 @@ export class AmqplibClient implements AMQPClient {
             throw new RunMQException(
                 Exceptions.CONNECTION_NOT_ESTABLISHED,
                 {
-                    error: error instanceof Error ? error.message : String(error)
+                    error: error instanceof Error ? error.message : JSON.stringify(error)
                 }
             );
         }

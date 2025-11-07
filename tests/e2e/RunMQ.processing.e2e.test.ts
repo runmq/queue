@@ -234,7 +234,7 @@ describe('RunMQ E2E Tests', () => {
         })
 
         it('Should handle multiple consumers processing messages concurrently', async () => {
-            const configuration = RunMQProcessorConfigurationExample.simpleNoSchema();
+            const configuration = RunMQProcessorConfigurationExample.simpleNoSchema("user.created.processor", 6);
 
             const channel = await testingConnection.getChannel();
             await ChannelTestHelpers.deleteQueue(channel, configuration.name);

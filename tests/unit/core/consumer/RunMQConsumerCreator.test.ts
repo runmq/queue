@@ -1,5 +1,5 @@
 import {ConsumerConfiguration} from '@src/core/consumer/ConsumerConfiguration';
-import {Constants} from '@src/core/constants';
+import {Constants, DEFAULTS} from '@src/core/constants';
 import {MockedRabbitMQChannel} from "@tests/mocks/MockedRabbitMQChannel";
 import {RunMQProcessorConfigurationExample} from "@tests/Examples/RunMQProcessorConfigurationExample";
 import {ConsumerConfigurationExample} from "@tests/Examples/ConsumerConfigurationExample";
@@ -95,7 +95,7 @@ describe('RunMQConsumerCreator Unit Tests', () => {
         it('should set prefetch and consume on consumer channels', async () => {
             await consumerCreator.createConsumer(testConsumerConfig);
 
-            expect(mockedChannel.prefetch).toHaveBeenCalledWith(10);
+            expect(mockedChannel.prefetch).toHaveBeenCalledWith(DEFAULTS.PREFETCH_COUNT);
             expect(mockedChannel.consume).toHaveBeenCalledWith(
                 testProcessorConfig.name,
                 expect.any(Function)

@@ -20,10 +20,11 @@ export class RunMQProcessorConfigurationExample {
 
     static simpleNoSchema(
         name: string = faker.lorem.word(),
+        consumersCount: number = 1
     ): RunMQProcessorConfiguration {
         return this.random(
             name,
-            1,
+            consumersCount,
             3,
             100,
             undefined
