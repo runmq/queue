@@ -7,6 +7,7 @@ import {RunMQProcessorConfigurationExample} from "@tests/Examples/RunMQProcessor
 import {MockedRunMQLogger} from "@tests/mocks/MockedRunMQLogger";
 import {RunMQConnectionConfigExample} from "@tests/Examples/RunMQConnectionConfigExample";
 import {RunMQMessageExample} from "@tests/Examples/RunMQMessageExample";
+import {RunMQUtils} from "@src/core/utils/Utils";
 
 describe('RunMQ Publisher E2E Tests', () => {
     const validConfig = RunMQConnectionConfigExample.valid();
@@ -35,7 +36,7 @@ describe('RunMQ Publisher E2E Tests', () => {
 
             runMQ.publish("test.publish.topic", testMessage);
 
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await RunMQUtils.delay(200);
 
             await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, 1);
 
@@ -63,7 +64,7 @@ describe('RunMQ Publisher E2E Tests', () => {
                 runMQ.publish("test.multiple.topic", testMessage);
             }
 
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await RunMQUtils.delay(500);
 
             await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, messageCount);
 
@@ -114,7 +115,7 @@ describe('RunMQ Publisher E2E Tests', () => {
 
             runMQ.publish("test.structure.topic", testMessage);
 
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await RunMQUtils.delay(200);
 
             await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, 1);
 
