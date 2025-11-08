@@ -64,7 +64,7 @@ describe('RunMQ Publisher E2E Tests', () => {
                 runMQ.publish("test.multiple.topic", testMessage);
             }
 
-            await RunMQUtils.delay(500);
+            await RunMQUtils.delay(1000);
 
             await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, messageCount);
 

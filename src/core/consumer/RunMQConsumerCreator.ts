@@ -28,11 +28,9 @@ export class RunMQConsumerCreator {
     public async createConsumer<T>(consumerConfiguration: ConsumerConfiguration<T>) {
         await this.assertQueues<T>(consumerConfiguration);
         await this.bindQueues<T>(consumerConfiguration);
-        const processors: Promise<void>[] = [];
         for (let i = 0; i < consumerConfiguration.processorConfig.consumersCount; i++) {
-            processors.push(this.runProcessor<T>(consumerConfiguration));
+            await this.runProcessor<T>(consumerConfiguration);
         }
-        await Promise.all(processors);
     }
 
 
