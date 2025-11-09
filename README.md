@@ -54,7 +54,7 @@ const runMQ = await RunMQ.start({
 #### Notes: 
 - `reconnectDelay` defines the wait time between reconnection attempts.
 - `maxReconnectAttempts` limits the number of retries when RabbitMQ is unavailable.
-- Management configuration is optional but **highly recommended**. It enables dynamic TTL via RabbitMQ policies; otherwise, RunMQ falls back to queue-based TTL.
+- Management configuration is optional but **highly recommended** to enables dynamic TTL via RabbitMQ policies; otherwise, RunMQ uses queue-based TTL.
 
 ### Processing side
 
@@ -79,7 +79,8 @@ await runMQ.process('user.created', {
     name: 'smsService',          // Unique processor name (separate queue)
     consumersCount: 1,           // Process 1 message at a time
     attempts: 5,                 // Retry failed messages up to 5 times
-    attemptsDelay: 1000          // Wait 1 second between retries
+    attemptsDelay: 1000,          // Wait 1 second between retries,
+    usePoliciesForDelay: true    // highly recommended, default is false
 }, async (message) => {
     console.log('SMSService received:', message.message);
     await sendSMS(message.message);
@@ -93,9 +94,8 @@ await runMQ.process('user.created', {
 - Each processor can have its own configuration for:
   - `attempts` How many the message will be retried
   - `attemptsDelay` The delay between attempts, and if management config is provided, it can be changed anytime!
-  - `consumersCount` The concurrency level, how many messages can be processed in the same time.  
-
-
+  - `consumersCount` The concurrency level, how many messages can be processed in the same time.
+  - `usePoliciesForDelay` Enable this to let RunMQ use policies for defining delay queue TTL. Highly recommended, as it allows you to adjust delay times dynamically without re-declaring queues.
 
 ### Publishing side
 
@@ -199,6 +199,19 @@ await runMQ.process('order.placed', {
 - Schema validation enforces message correctness before processing, reducing runtime errors.
 - Only messages matching the schema reach your business logic.
 - DLQ ensures that invalid messages are captured and can be inspected later.
+
+### Policies for delay between attempts 
+
+RunMQ can leverage RabbitMQ policies to manage the delay between attempts, it's not used by default, however it's <b>highly recommended</b> to enable it. 
+
+- When `usePoliciesForDelay` is enabled, RunMQ creates delay queues with TTL configured via RabbitMQ policies rather than hard-coding TTL in the queue itself.
+- Hard-coding the TTL requires manual queue re-declaration to change delays, which can involve deleting queues - making it cumbersome and error-prone.
+- Policies allow dynamic updates to the TTL without recreating queues — you can change attempts delay anytime, and RunMQ will take care of the rest.
+
+#### Benefits
+- Flexible and easy management of retry delays
+- Reduces operational overhead
+- Fully compatible with RunMQ’s retry and DLQ mechanisms
 
 ### Custom Logger
 
