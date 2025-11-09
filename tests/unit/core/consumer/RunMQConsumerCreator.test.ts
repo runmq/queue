@@ -47,7 +47,7 @@ describe('RunMQConsumerCreator Unit Tests', () => {
     });
 
     describe('createConsumer', () => {
-        it('should create consumer with correct queue assertions when usePoliciesForTTL is false', async () => {
+        it('should create consumer with correct queue assertions when usePoliciesForDelay is false', async () => {
             await consumerCreator.createConsumer(testConsumerConfig);
 
             expect(mockedChannel.assertQueue).toHaveBeenCalledWith(
@@ -80,7 +80,7 @@ describe('RunMQConsumerCreator Unit Tests', () => {
             expect(mockTTLPolicyManager.apply).not.toHaveBeenCalled();
         });
 
-        it('should use TTL policies when usePoliciesForTTL is true', async () => {
+        it('should use TTL policies when usePoliciesForDelay is true', async () => {
 
             await consumerCreator.createConsumer(testConsumerConfigWithPolicies);
 

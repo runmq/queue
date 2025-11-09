@@ -95,7 +95,7 @@ export class RunMQConsumerCreator {
         const messageDelay = consumerConfiguration.processorConfig.attemptsDelay ?? DEFAULTS.PROCESSING_RETRY_DELAY
 
 
-        const policiesForTTL = consumerConfiguration.processorConfig.usePoliciesForTTL ?? false;
+        const policiesForTTL = consumerConfiguration.processorConfig.usePoliciesForDelay ?? false;
         if (!policiesForTTL) {
             await this.defaultChannel.assertQueue(retryDelayQueueName, {
                 durable: true,

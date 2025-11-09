@@ -65,13 +65,13 @@ export interface RunMQProcessorConfiguration {
     messageSchema?: MessageSchema
 
     /**
-     * Whether to use RabbitMQ policies for setting TTL instead of queue-level TTL.
+     * Whether to use RabbitMQ policies for setting the attempts delay instead of queue-level TTL.
      * Requires management configuration to be provided in RunMQConnectionConfig.
      * Default is false.
      *
      * Recommended to use it for flexibility.
      */
-    usePoliciesForTTL?: boolean;
+    usePoliciesForDelay?: boolean;
 }
 
 export interface RabbitMQManagementConfig {

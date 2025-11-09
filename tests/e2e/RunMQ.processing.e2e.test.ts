@@ -269,7 +269,7 @@ describe('RunMQ E2E Tests', () => {
             await testingConnection.disconnect();
         })
 
-        it('Should process with TTL policy disabled when usePoliciesForTTL is false', async () => {
+        it('Should process with TTL policy disabled when usePoliciesForDelay is false', async () => {
             const configuration = RunMQProcessorConfigurationExample.simpleNoSchema()
 
             const channel = await testingConnection.getChannel();
