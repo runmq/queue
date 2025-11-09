@@ -26,6 +26,15 @@ export interface RunMQConnectionConfig {
      * Default is 10 attempts.
      */
     maxReconnectAttempts?: number;
+    /**
+     * Optional configuration for RabbitMQ management HTTP API.
+     * If provided, policies will be used for TTL instead of queue-level TTL.
+     */
+    management?: {
+        url: string;
+        username: string;
+        password: string;
+    };
 }
 
 export type SchemaFailureStrategy = 'dlq'
@@ -54,6 +63,32 @@ export interface RunMQProcessorConfiguration {
      * @see MessageSchema
      */
     messageSchema?: MessageSchema
+
+    /**
+     * Whether to use RabbitMQ policies for setting TTL instead of queue-level TTL.
+     * Requires management configuration to be provided in RunMQConnectionConfig.
+     * Default is false.
+     *
+     * Recommended to use it for flexibility.
+     */
+    usePoliciesForTTL?: boolean;
+}
+
+export interface RabbitMQManagementConfig {
+    url: string;
+    username: string;
+    password: string;
+}
+
+export interface RabbitMQOperatorPolicy {
+    name: string;
+    pattern: string;
+    definition: {
+        "message-ttl"?: number;
+        [key: string]: any;
+    };
+    priority?: number;
+    "apply-to": "queues" | "exchanges" | "all";
 }
 
 export interface RunMQMessageContent<T = any> {

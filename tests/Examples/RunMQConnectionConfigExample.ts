@@ -1,5 +1,6 @@
 import {RunMQConnectionConfig} from "@src/types";
 import {faker} from "@faker-js/faker";
+import {RabbitMQManagementConfigExample} from "@tests/Examples/RabbitMQManagementConfigExample";
 
 export class RunMQConnectionConfigExample {
     static random(
@@ -21,6 +22,15 @@ export class RunMQConnectionConfigExample {
             100,
             3
         );
+    }
+
+    static validWithManagement(): RunMQConnectionConfig {
+        return {
+            url: 'amqp://test:test@localhost:5673',
+            reconnectDelay: 100,
+            maxReconnectAttempts: 3,
+            management: RabbitMQManagementConfigExample.valid()
+        }
     }
 
     static invalid(): RunMQConnectionConfig {

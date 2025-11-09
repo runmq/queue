@@ -1,4 +1,4 @@
-import {RunMQUtils} from "@src/core/utils/Utils";
+import {RunMQUtils} from "@src/core/utils/RunMQUtils";
 import {MessageExample} from "@tests/Examples/MessageExample";
 import {MockedRabbitMQChannel} from "@tests/mocks/MockedRabbitMQChannel";
 import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";

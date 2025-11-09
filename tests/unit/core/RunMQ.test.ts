@@ -2,7 +2,7 @@ import {RunMQ} from '@src/core/RunMQ';
 import {AmqplibClient} from '@src/core/clients/AmqplibClient';
 import {RunMQException} from '@src/core/exceptions/RunMQException';
 import {Exceptions} from '@src/core/exceptions/Exceptions';
-import {RunMQUtils} from '@src/core/utils/Utils';
+import {RunMQUtils} from '@src/core/utils/RunMQUtils';
 import {RunMQConsumerCreator} from '@src/core/consumer/RunMQConsumerCreator';
 import {Channel} from 'amqplib';
 import {Constants} from '@src/core/constants';
@@ -14,7 +14,7 @@ import {MockedRunMQLogger} from "@tests/mocks/MockedRunMQLogger";
 import {RunMQPublisherCreator} from "@src/core/publisher/RunMQPublisherCreator";
 
 jest.mock('@src/core/clients/AmqplibClient');
-jest.mock('@src/core/utils/Utils');
+jest.mock('@src/core/utils/RunMQUtils');
 jest.mock('@src/core/consumer/RunMQConsumerCreator');
 jest.mock('@src/core/publisher/RunMQPublisherCreator');
 
@@ -127,13 +127,14 @@ describe('RunMQ Unit Tests', () => {
             expect(mockConsumerCreator).toHaveBeenCalledWith(
                 mockChannel,
                 expect.any(AmqplibClient),
-                expect.any(Object)
+                expect.any(Object),
+                undefined
             );
             expect(mockConsumerCreator.prototype.createConsumer).toHaveBeenCalledWith(
                 expect.objectContaining({
                     topic: 'test.topic',
                     processorConfig: processorConfig,
-                    processor: processor
+                    processor: processor,
                 })
             );
         });

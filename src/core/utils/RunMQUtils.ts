@@ -16,4 +16,8 @@ export class RunMQUtils {
             throw new RunMQException(Exceptions.INVALID_MESSAGE_FORMAT, {});
         }
     }
+
+    public static escapeRegExp(string: string): string {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
 }

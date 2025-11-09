@@ -7,7 +7,8 @@ export class RunMQProcessorConfigurationExample {
         consumersCount = faker.number.int({min: 1, max: 10}),
         attempts = faker.number.int({min: 0, max: 10}),
         attemptsDelay = faker.number.int({min: 10, max: 1000}),
-        messageSchema = MessageSchemaExample.random()
+        messageSchema = MessageSchemaExample.random(),
+        usePoliciesForTTL: boolean = false
     ): RunMQProcessorConfiguration {
         return {
             name,
@@ -15,21 +16,25 @@ export class RunMQProcessorConfigurationExample {
             attempts,
             attemptsDelay,
             messageSchema,
+            usePoliciesForTTL
         }
     }
 
     static simpleNoSchema(
         name: string = faker.lorem.word(),
-        consumersCount: number = 1
+        consumersCount: number = 1,
+        usePoliciesForTTL: boolean = false
     ): RunMQProcessorConfiguration {
         return this.random(
             name,
             consumersCount,
             3,
             100,
-            undefined
+            undefined,
+            usePoliciesForTTL
         );
     }
+
 
     static simpleWithPersonSchema(attempts: number = 3): RunMQProcessorConfiguration {
         return this.random(

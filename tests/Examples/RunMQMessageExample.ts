@@ -1,6 +1,6 @@
 import {MessageExample} from "@tests/Examples/MessageExample";
 import {RunMQMessage, RunMQMessageMeta} from "@src/core/message/RunMQMessage";
-import {RunMQUtils} from "@src/core/utils/Utils";
+import {RunMQUtils} from "@src/core/utils/RunMQUtils";
 
 export class RunMQMessageExample {
     static random(

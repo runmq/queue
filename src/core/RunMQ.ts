@@ -2,7 +2,7 @@ import {RunMQProcessorConfiguration, RunMQConnectionConfig, RunMQPublisher, RunM
 import {RunMQException} from "@src/core/exceptions/RunMQException";
 import {AmqplibClient} from "@src/core/clients/AmqplibClient";
 import {Exceptions} from "@src/core/exceptions/Exceptions";
-import {RunMQUtils} from "@src/core/utils/Utils";
+import {RunMQUtils} from "@src/core/utils/RunMQUtils";
 import {Constants, DEFAULTS} from "@src/core/constants";
 import {Channel} from "amqplib";
 import {RunMQConsumerCreator} from "@src/core/consumer/RunMQConsumerCreator";
@@ -51,7 +51,7 @@ export class RunMQ {
      * @param processor The function that will process the incoming messages
      */
     public async process<T = Record<string, never>>(topic: string, config: RunMQProcessorConfiguration, processor: (message: RunMQMessageContent<T>) => Promise<void>) {
-        const consumer = new RunMQConsumerCreator(this.defaultChannel!, this.amqplibClient, this.logger);
+        const consumer = new RunMQConsumerCreator(this.defaultChannel!, this.amqplibClient, this.logger, this.config.management);
         await consumer.createConsumer<T>(new ConsumerConfiguration(topic, config, processor))
     }
 
