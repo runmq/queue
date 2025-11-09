@@ -44,7 +44,7 @@ const runMQ = await RunMQ.start({
     reconnectDelay: 5000,        // Optional, default: 5000ms
     maxReconnectAttempts: 5,     // Optional, default: 5
     management: {
-        url: "http://localhost:15673/",
+        url: "http://localhost:15673",
         username: "guest",
         password: "guest"
     };
@@ -205,7 +205,7 @@ await runMQ.process('order.placed', {
 
 RunMQ can leverage RabbitMQ policies to manage the delay between attempts, it's not used by default, however it's <b>highly recommended</b> to enable it. 
 
-- When `usePoliciesForDelay` is enabled, RunMQ creates delay queues with TTL configured via RabbitMQ policies rather than hard-coding TTL in the queue itself.
+- When `usePoliciesForDelay` is enabled in consumer config, RunMQ creates delay queues with TTL configured via RabbitMQ policies rather than hard-coding TTL in the queue itself.
 - Hard-coding the TTL requires manual queue re-declaration to change delays, which can involve deleting queues - making it cumbersome and error-prone.
 - Policies allow dynamic updates to the TTL without recreating queues — you can change attempts delay anytime, and RunMQ will take care of the rest.
 
