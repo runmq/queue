@@ -146,6 +146,7 @@ Publisher → Topic (email.send) → Queue: emailWorker → DLQ: emailWorker_dlq
 - Dead Letter Queues allow failed messages to be captured without affecting other services.
 - Schema validation ensures that only valid messages are processed; invalid messages can be routed to the DLQ automatically.
 - Multiple concurrent workers can process jobs in parallel for high throughput.
+- at anytime could be transformed into Event-Driven Architecture by adding more processors to the same topic.
 
 <br>
 
@@ -200,7 +201,7 @@ await runMQ.process('order.placed', {
 - Only messages matching the schema reach your business logic.
 - DLQ ensures that invalid messages are captured and can be inspected later.
 
-### Policies for delay between attempts 
+### Policies for attempts delay
 
 RunMQ can leverage RabbitMQ policies to manage the delay between attempts, it's not used by default, however it's <b>highly recommended</b> to enable it. 
 
@@ -287,7 +288,7 @@ const runMQ = await RunMQ.start(config, new CustomLogger());
 
 ---
 
-## 📦 Message Structure
+### 📦 Message Structure
 
 | Property | Type | Description |
 |----------|------|-------------|
