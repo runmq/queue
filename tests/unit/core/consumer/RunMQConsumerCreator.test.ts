@@ -6,10 +6,18 @@ import {ConsumerConfigurationExample} from "@tests/Examples/ConsumerConfiguratio
 import {RunMQConsumerCreator} from "@src/core/consumer/RunMQConsumerCreator";
 import {MockedRunMQLogger} from "@tests/mocks/MockedRunMQLogger";
 import {MockedAMQPClient} from "@tests/mocks/MockedAMQPClient";
+import {RunMQTTLPolicyManager} from "@src/core/management/Policies/RunMQTTLPolicyManager";
+import {RunMQException} from "@src/core/exceptions/RunMQException";
+
+jest.mock('@src/core/management/Policies/RunMQTTLPolicyManager');
 
 describe('RunMQConsumerCreator Unit Tests', () => {
     const mockedChannel = new MockedRabbitMQChannel();
     const mockedClient = new MockedAMQPClient(mockedChannel);
+    const mockTTLPolicyManager = {
+        initialize: jest.fn(),
+        apply: jest.fn()
+    };
 
     const testProcessorConfig = RunMQProcessorConfigurationExample.random(
         'testProcessor',
@@ -17,15 +25,29 @@ describe('RunMQConsumerCreator Unit Tests', () => {
         2,
         5000
     );
+    const testProcessorConfigWithPolicies = RunMQProcessorConfigurationExample.random(
+        'testProcessor',
+        3,
+        2,
+        5000,
+        undefined,
+        true
+    );
+    const testConsumerConfigWithPolicies = ConsumerConfigurationExample.withProcessorConfig(testProcessorConfigWithPolicies)
+
     const testConsumerConfig = ConsumerConfigurationExample.withProcessorConfig(testProcessorConfig)
-    const consumerCreator = new RunMQConsumerCreator(mockedChannel, mockedClient, MockedRunMQLogger)
+    let consumerCreator: RunMQConsumerCreator;
 
     beforeEach(() => {
         jest.clearAllMocks();
+        jest.mocked(RunMQTTLPolicyManager).mockImplementation(() => mockTTLPolicyManager as any);
+        mockTTLPolicyManager.initialize.mockResolvedValue(undefined);
+        mockTTLPolicyManager.apply.mockResolvedValue(true);
+        consumerCreator = new RunMQConsumerCreator(mockedChannel, mockedClient, MockedRunMQLogger, undefined);
     });
 
     describe('createConsumer', () => {
-        it('should create consumer with correct queue assertions', async () => {
+        it('should create consumer with correct queue assertions when usePoliciesForDelay is false', async () => {
             await consumerCreator.createConsumer(testConsumerConfig);
 
             expect(mockedChannel.assertQueue).toHaveBeenCalledWith(
@@ -54,6 +76,33 @@ describe('RunMQConsumerCreator Unit Tests', () => {
                     deadLetterRoutingKey: testProcessorConfig.name
                 }
             );
+
+            expect(mockTTLPolicyManager.apply).not.toHaveBeenCalled();
+        });
+
+        it('should use TTL policies when usePoliciesForDelay is true', async () => {
+
+            await consumerCreator.createConsumer(testConsumerConfigWithPolicies);
+
+            expect(mockTTLPolicyManager.apply).toHaveBeenCalledWith(
+                Constants.RETRY_DELAY_QUEUE_PREFIX + testProcessorConfig.name,
+                testProcessorConfig.attemptsDelay
+            );
+
+            expect(mockedChannel.assertQueue).toHaveBeenCalledWith(
+                Constants.RETRY_DELAY_QUEUE_PREFIX + testProcessorConfig.name,
+                {
+                    durable: true,
+                    deadLetterExchange: Constants.ROUTER_EXCHANGE_NAME
+                }
+            );
+        });
+
+        it('should throw exception when TTL policy application fails', async () => {
+            mockTTLPolicyManager.apply.mockResolvedValue(false);
+
+            await expect(consumerCreator.createConsumer(testConsumerConfigWithPolicies))
+                .rejects.toThrow(RunMQException);
         });
 
         it('should bind queues correctly', async () => {

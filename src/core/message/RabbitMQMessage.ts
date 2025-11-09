@@ -1,5 +1,5 @@
 import {Channel} from "amqplib";
-import {RunMQUtils} from "@src/core/utils/Utils";
+import {RunMQUtils} from "@src/core/utils/RunMQUtils";
 import {RabbitMQMessageProperties} from "@src/core/message/RabbitMQMessageProperties";
 import {AMQPMessage} from "@src/core/message/AmqpMessage";
 

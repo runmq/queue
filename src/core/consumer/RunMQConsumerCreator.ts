@@ -14,18 +14,25 @@ import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 import {DefaultDeserializer} from "@src/core/serializers/deserializer/DefaultDeserializer";
 import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
 import {RunMQPublisherCreator} from "@src/core/publisher/RunMQPublisherCreator";
-import {AMQPClient} from "@src/types";
+import {AMQPClient, RabbitMQManagementConfig} from "@src/types";
+import {RunMQTTLPolicyManager} from "@src/core/management/Policies/RunMQTTLPolicyManager";
+import {RunMQException} from "@src/core/exceptions/RunMQException";
+import {Exceptions} from "@src/core/exceptions/Exceptions";
 
 export class RunMQConsumerCreator {
+    private ttlPolicyManager: RunMQTTLPolicyManager;
+
     constructor(
         private defaultChannel: Channel,
         private client: AMQPClient,
         private logger: RunMQLogger,
+        managementConfig?: RabbitMQManagementConfig
     ) {
+        this.ttlPolicyManager = new RunMQTTLPolicyManager(logger, managementConfig);
     }
 
-
     public async createConsumer<T>(consumerConfiguration: ConsumerConfiguration<T>) {
+        await this.ttlPolicyManager.initialize();
         await this.assertQueues<T>(consumerConfiguration);
         await this.bindQueues<T>(consumerConfiguration);
         for (let i = 0; i < consumerConfiguration.processorConfig.consumersCount; i++) {
@@ -78,16 +85,43 @@ export class RunMQConsumerCreator {
             deadLetterExchange: Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME,
             deadLetterRoutingKey: consumerConfiguration.processorConfig.name
         });
-        await this.defaultChannel.assertQueue(ConsumerCreatorUtils.getRetryDelayTopicName(consumerConfiguration.processorConfig.name), {
-            durable: true,
-            deadLetterExchange: Constants.ROUTER_EXCHANGE_NAME,
-            messageTtl: consumerConfiguration.processorConfig.attemptsDelay ?? DEFAULTS.PROCESSING_RETRY_DELAY,
-        });
         await this.defaultChannel.assertQueue(ConsumerCreatorUtils.getDLQTopicName(consumerConfiguration.processorConfig.name), {
             durable: true,
             deadLetterExchange: Constants.ROUTER_EXCHANGE_NAME,
             deadLetterRoutingKey: consumerConfiguration.processorConfig.name
         });
+
+        const retryDelayQueueName = ConsumerCreatorUtils.getRetryDelayTopicName(consumerConfiguration.processorConfig.name);
+        const messageDelay = consumerConfiguration.processorConfig.attemptsDelay ?? DEFAULTS.PROCESSING_RETRY_DELAY
+
+
+        const policiesForTTL = consumerConfiguration.processorConfig.usePoliciesForDelay ?? false;
+        if (!policiesForTTL) {
+            await this.defaultChannel.assertQueue(retryDelayQueueName, {
+                durable: true,
+                deadLetterExchange: Constants.ROUTER_EXCHANGE_NAME,
+                messageTtl: messageDelay,
+            });
+            return;
+        }
+
+        const result = await this.ttlPolicyManager.apply(
+            retryDelayQueueName,
+            messageDelay
+        );
+        if (result) {
+            await this.defaultChannel.assertQueue(retryDelayQueueName, {
+                durable: true,
+                deadLetterExchange: Constants.ROUTER_EXCHANGE_NAME
+            });
+            return;
+        }
+        throw new RunMQException(
+            Exceptions.FAILURE_TO_DEFINE_TTL_POLICY,
+            {
+                error: "Failed to apply TTL policy to queue: " + retryDelayQueueName
+            }
+        );
     }
 
 

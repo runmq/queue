@@ -4,4 +4,5 @@ export class Exceptions {
     public static NOT_INITIALIZED = 'NOT_INITIALIZED';
     public static INVALID_MESSAGE_FORMAT = 'MESSAGE_SHOULD_BE_VALID_RECORD';
     public static UNSUPPORTED_SCHEMA = 'UNSUPPORTED_SCHEMA';
+    public static FAILURE_TO_DEFINE_TTL_POLICY = 'FAILURE_TO_DEFINE_TTL_POLICY';
 }

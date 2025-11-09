@@ -4,6 +4,7 @@ export const Constants = {
     DEAD_LETTER_ROUTER_EXCHANGE_NAME: RUNMQ_PREFIX + "dead_letter_router",
     RETRY_DELAY_QUEUE_PREFIX: RUNMQ_PREFIX + "retry_delay_",
     DLQ_QUEUE_PREFIX: RUNMQ_PREFIX + "dlq_",
+    MESSAGE_TTL_OPERATOR_POLICY_PREFIX: RUNMQ_PREFIX + "message_ttl_operator_policy",
 }
 
 export const DEFAULTS = {

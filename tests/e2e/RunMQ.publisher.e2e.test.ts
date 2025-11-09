@@ -7,7 +7,7 @@ import {RunMQProcessorConfigurationExample} from "@tests/Examples/RunMQProcessor
 import {MockedRunMQLogger} from "@tests/mocks/MockedRunMQLogger";
 import {RunMQConnectionConfigExample} from "@tests/Examples/RunMQConnectionConfigExample";
 import {RunMQMessageExample} from "@tests/Examples/RunMQMessageExample";
-import {RunMQUtils} from "@src/core/utils/Utils";
+import {RunMQUtils} from "@src/core/utils/RunMQUtils";
 
 describe('RunMQ Publisher E2E Tests', () => {
     const validConfig = RunMQConnectionConfigExample.valid();

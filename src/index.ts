@@ -6,5 +6,6 @@ export {
     RunMQProcessorConfiguration,
     MessageSchema,
     RunMQMessageContent,
-    RunMQMessageMetaContent
+    RunMQMessageMetaContent,
+    RabbitMQManagementConfig,
 } from "./types";

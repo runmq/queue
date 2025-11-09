@@ -3,15 +3,17 @@ import {AmqplibClient} from "@src/core/clients/AmqplibClient";
 import {Constants} from "@src/core/constants";
 import {ChannelTestHelpers} from "@tests/helpers/ChannelTestHelpers";
 import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
-import {RunMQUtils} from "@src/core/utils/Utils";
+import {RunMQUtils} from "@src/core/utils/RunMQUtils";
 import {MockedRunMQLogger} from "@tests/mocks/MockedRunMQLogger";
 import {RunMQConnectionConfigExample} from "@tests/Examples/RunMQConnectionConfigExample";
 import {RunMQProcessorConfigurationExample} from "@tests/Examples/RunMQProcessorConfigurationExample";
 import {RunMQMessageExample} from "@tests/Examples/RunMQMessageExample";
 import {MessageTestUtils} from "@tests/helpers/MessageTestUtils";
+import {faker} from "@faker-js/faker";
 
 describe('RunMQ E2E Tests', () => {
     const validConfig = RunMQConnectionConfigExample.valid();
+    const validConfigWithManagement = RunMQConnectionConfigExample.validWithManagement()
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -263,6 +265,66 @@ describe('RunMQ E2E Tests', () => {
             expect(processedMessages.size).toBe(6);
             expect(processingCount).toBe(0);
             await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, 0)
+            await runMQ.disconnect();
+            await testingConnection.disconnect();
+        })
+
+        it('Should process with TTL policy disabled when usePoliciesForDelay is false', async () => {
+            const configuration = RunMQProcessorConfigurationExample.simpleNoSchema()
+
+            const channel = await testingConnection.getChannel();
+            await ChannelTestHelpers.deleteQueue(channel, configuration.name);
+
+            const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
+            let attemptCount = 0;
+            await runMQ.process<TestingMessage>("user.created", configuration,
+                () => {
+                    attemptCount++;
+                    if (attemptCount < 2) {
+                        throw new Error("Retry me");
+                    }
+                    return Promise.resolve();
+                }
+            )
+
+            channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'user.created', MessageTestUtils.buffer(RunMQMessageExample.person()))
+
+            await RunMQUtils.delay(700);
+            expect(attemptCount).toBe(2);
+
+            await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getDLQTopicName(configuration.name), 0)
+            await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, 0)
+            await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getRetryDelayTopicName(configuration.name), 0)
+            await runMQ.disconnect();
+            await testingConnection.disconnect();
+        })
+
+        it('Should process with TTL policy when enabled', async () => {
+            const configuration = RunMQProcessorConfigurationExample.simpleNoSchema(faker.lorem.word(), 1, true);
+
+            const channel = await testingConnection.getChannel();
+            await ChannelTestHelpers.deleteQueue(channel, configuration.name);
+
+            const runMQ = await RunMQ.start(validConfigWithManagement, MockedRunMQLogger);
+            let attemptCount = 0;
+            await runMQ.process<TestingMessage>("user.created", configuration,
+                () => {
+                    attemptCount++;
+                    if (attemptCount < 2) {
+                        throw new Error("Retry me");
+                    }
+                    return Promise.resolve();
+                }
+            )
+
+            channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'user.created', MessageTestUtils.buffer(RunMQMessageExample.person()))
+
+            await RunMQUtils.delay(700);
+            expect(attemptCount).toBe(2);
+
+            await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getDLQTopicName(configuration.name), 0)
+            await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, 0)
+            await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getRetryDelayTopicName(configuration.name), 0)
             await runMQ.disconnect();
             await testingConnection.disconnect();
         })
