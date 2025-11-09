@@ -1,21 +1,31 @@
-# RunMQ
+<div align="center">
+  <img width="1479" height="612" alt="RunMQ-logo (4)" src="https://github.com/user-attachments/assets/f1327ebf-5d30-4f82-921c-14422c49b1d8" />
+   <a href="https://badge.fury.io/js/runmq.svg">
+      <img src="https://badge.fury.io/js/runmq.svg"/>
+    </a>
+    <a href="https://github.com/semantic-release/semantic-release">
+      <img src="https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg"/>
+    </a>
+</div>
 
-RunMQ is a reliable message queue library for Node.js built on top of RabbitMQ. Supports async background processing and event-driven messaging for microservices, with automatic retries, schema validation, and DLQ.
 
-RunMQ can be used to implement multiple messaging or jobs processing patterns:
-- **Event Bus** for event-driven architectures, where multiple services independently react to the same events
-- **Job Queue** for async background task processing
+<b>RunMQ</b> is a high-performance message queue library for <b>Node.js</b>, built on top of <b>RabbitMQ</b>’s rock-solid messaging guarantees.
+
+It combines RabbitMQ’s proven reliability with a modern developer experience — offering simple APIs, built-in fault tolerance, and seamless scaling for distributed systems.
+
+Whether you’re running <b>background jobs</b>, designing an <b>event-driven architecture</b>, or managing a <b>pub/sub event bus</b>, RunMQ provides everything you need — all in a <b>lightweight package</b> with a <b>simple DX</b>, <b>without the hassle of managing everything on your own</b>.
+
 
 ## Features
 
-- **Automatic Connection Management**: Built-in retry logic with configurable attempts and delays
-- **Message Processing with Retries**: Automatic retry mechanism for failed messages with configurable retry delays
-- **Dead Letter Queue (DLQ) Support**: Failed messages automatically move to DLQ after exhausting retry attempts
-- **Isolated Queues**: Each processor maintains its own queue and DLQ, ensuring complete isolation between services
-- **Schema Validation**: Optional message validation using JSON Schema (AJV)
-- **Concurrent Processing**: Support for multiple concurrent consumers per queue
-- **Correlation ID Support**: Built-in correlation ID generation and tracking for distributed tracing
-- **Custom Logging**: Pluggable logging interface with default console logger
+- **Reliable Message Processing with Retries**: Automatically retries failed messages with configurable delays and retry limits.
+- **Dead Letter Queue (DLQ) Support**: Failed messages are seamlessly routed to a DLQ after all retry attempts are exhausted.
+- **Pub/Sub with Atomic Delivery**: Publish a message once, and all subscribed consumers receive it atomically, without the need to publish multiple times.
+- **Isolated Queues per Processor**: Each processor gets its own dedicated queue and DLQ, ensuring full isolation and predictable behavior across services.
+- **Schema Validation**: Optional JSON Schema validation powered by AJV for safer message handling and data integrity.
+- **Concurrent Consumers**: Scale either horizontally (multiple instances) or vertically (multiple consumers per queue, leveraging RabbitMQ prefetch) to maximize throughput and efficiency.
+- **RabbitMQ Durability & Acknowledgements**: Leverages RabbitMQ’s persistent storage and acknowledgment model to guarantee at-least-once delivery, even across restarts and failures.
+- **Custom Logging**: Plug in your own logger or use the default console logger for full control over message visibility.
 
 ## Installation
 
@@ -23,270 +33,129 @@ RunMQ can be used to implement multiple messaging or jobs processing patterns:
 npm install runmq
 ```
 
-## Architecture Overview
-
-RunMQ can be used to implement various messaging patterns. Here are two common architectures:
-
-### 1. Event-Driven Architecture (Event Bus Pattern)
-
-In this pattern, multiple processors (or services) subscribe to the same event topic. Each processor gets its own isolated queue and DLQ, enabling true microservices autonomy.
-
-```
-Publisher → Topic (user.created)
-              ├→ Queue: emailService      → DLQ: emailService_dlq
-              ├→ Queue: analyticsService  → DLQ: analyticsService_dlq
-              └→ Queue: notificationService → DLQ: notificationService_dlq
-```
-
-**Key Benefits:**
-- Services remain independent and isolated
-- Each service can fail/retry without affecting others
-- Easy to add new services or processors by subscribing to existing topics
-- Scalable with multiple concurrent workers
-
-### 2. Background Processing Pattern
-
-RunMQ can also be used as a job queue for background processing tasks. A single worker service processes jobs from a dedicated queue with retries and DLQ support.
-
-```
-Publisher → Topic (email.send) → Queue: emailWorker → DLQ: emailWorker_dlq
-```
-
-**Key Benefits:**
-- Simple async job processing
-- Automatic retries for failed jobs
-- Scalable with multiple concurrent workers
-- Dead letter queue for failed jobs
-
 ## Quick Start
 
-### Basic Setup
+### Initialize RunMQ
+The first step is to connect to RabbitMQ
+
+```typescript
+const runMQ = await RunMQ.start({
+    url: 'amqp://localhost:5672',
+    reconnectDelay: 5000,        // Optional, default: 5000ms
+    maxReconnectAttempts: 5,     // Optional, default: 5
+    management: {
+        url: "http://localhost:15673/",
+        username: "guest",
+        password: "guest"
+    };
+});
+```
+
+#### Notes: 
+- `reconnectDelay` defines the wait time between reconnection attempts.
+- `maxReconnectAttempts` limits the number of retries when RabbitMQ is unavailable.
+- Management configuration is optional but **highly recommended**. It enables dynamic TTL via RabbitMQ policies; otherwise, RunMQ falls back to queue-based TTL.
+
+### Processing side
+
+It’s important that processors run before publishing messages, because queues are created internally when a consumer starts for the first time.
 
 ```typescript
 import { RunMQ } from 'runmq';
 
-// 1. Initialize RunMQ
-const runMQ = await RunMQ.start({
-    url: 'amqp://localhost:5672',
-    reconnectDelay: 5000,        // optional, default: 5000ms
-    maxReconnectAttempts: 5      // optional, default: 5
-});
-
-// 2. Process messages (create a consumer)
+// Processor 1: Email Service
 await runMQ.process('user.created', {
-    name: 'emailService',        // Unique processor name (creates isolated queue)
-    consumersCount: 2,           // Number of concurrent workers
-    attempts: 3,                 // Try processing a message up to 3 times
-    attemptsDelay: 2000            // Wait 2 seconds between retries
+    name: 'emailService',        // Unique processor name (creates an isolated queue)
+    consumersCount: 2,           // Process up to 2 messages concurrently
+    attempts: 3,                 // Retry failed messages up to 3 times
+    attemptsDelay: 2000          // Wait 2 seconds between retries
 }, async (message) => {
-    // Your processing logic here
-    console.log('Received:', message.message);
+    console.log('EmailService received:', message.message);
     await sendEmail(message.message);
 });
 
-// 3. Publish messages
+// Processor 2: SMS Service
+await runMQ.process('user.created', {
+    name: 'smsService',          // Unique processor name (separate queue)
+    consumersCount: 1,           // Process 1 message at a time
+    attempts: 5,                 // Retry failed messages up to 5 times
+    attemptsDelay: 1000          // Wait 1 second between retries
+}, async (message) => {
+    console.log('SMSService received:', message.message);
+    await sendSMS(message.message);
+});
+```
+
+#### Notes:
+- `name` is the unique identifier for each processor.
+- RunMQ supports <b>Pub/Sub</b> out-of-the-box: multiple processors can consume the same message independently.
+  - Example: When a user is created, one processor can send an email verification while another sends an SMS. 
+- Each processor can have its own configuration for:
+  - `attempts` How many the message will be retried
+  - `attemptsDelay` The delay between attempts, and if management config is provided, it can be changed anytime!
+  - `consumersCount` The concurrency level, how many messages can be processed in the same time.  
+
+
+
+### Publishing side
+
+```typescript
 runMQ.publish('user.created', {
     userId: '123',
     email: 'user@example.com',
     name: 'John Doe'
 });
-
-// That's it! The message will be delivered to all processors subscribed to 'user.created'
 ```
 
-## Event-Driven Architecture Example
+✅ Each processor receives the message independently without needing multiple publishes.
 
-One of the most powerful patterns with RunMQ is the Event Bus pattern, where multiple services independently react to the same events.
-The main advantage is that each service has its own isolated queue and dead letter queue, allowing for true microservices autonomy
-Publishing a single message (event) results in multiple services receiving and processing it independently.
+<br>
 
-### Scenario: User Registration System
+## Patterns in details 
 
-When a user registers, multiple services need to react independently.
+RunMQ can be used to implement various messaging patterns. Two common architectures are:
 
-```typescript
-import { RunMQ, RunMQMessage } from 'runmq';
+### 1. Event-Driven Architecture (Event Bus Pattern)
 
-interface UserCreatedEvent {
-  userId: string;
-  email: string;
-  name: string;
-  createdAt: string;
-}
-
-// Initialize RunMQ in each service
-const runMQ = await RunMQ.start({
-  url: 'amqp://localhost:5672'
-});
-
-// ============================================
-// SERVICE 1: Email Service
-// ============================================
-await runMQ.process<UserCreatedEvent>('user.created', {
-  name: 'emailService',        // Creates queue: emailService
-  consumersCount: 2,
-  attempts: 3,
-  attemptsDelay: 2000
-}, async (message: RunMQMessage<UserCreatedEvent>) => {
-  console.log(`[Email Service] Sending welcome email to ${message.message.email}`);
-  await sendWelcomeEmail(message.message);
-});
-
-// ============================================
-// SERVICE 2: Analytics Service
-// ============================================
-await runMQ.process<UserCreatedEvent>('user.created', {
-  name: 'analyticsService',    // Creates queue: analyticsService
-  consumersCount: 1,
-  attempts: 3
-}, async (message: RunMQMessage<UserCreatedEvent>) => {
-  console.log(`[Analytics] Recording user registration for ${message.message.userId}`);
-  await trackUserRegistration(message.message);
-});
-
-// ============================================
-// SERVICE 3: Notification Service
-// ============================================
-await runMQ.process<UserCreatedEvent>('user.created', {
-  name: 'notificationService', // Creates queue: notificationService
-  consumersCount: 3,
-  attempts: 5,
-  attemptsDelay: 1000
-}, async (message: RunMQMessage<UserCreatedEvent>) => {
-  console.log(`[Notifications] Sending push notification to ${message.message.userId}`);
-  await sendPushNotification(message.message);
-});
-
-// ============================================
-// PUBLISHER: User Registration Handler
-// ============================================
-// When a user registers, publish one event
-runMQ.publish('user.created', {
-  userId: 'user-123',
-  email: 'john@example.com',
-  name: 'John Doe',
-  createdAt: new Date().toISOString()
-});
-
-// All three services receive the event independently!
-```
-
-### Adding a New Processor
-
-Want to add a new service? Just subscribe to existing events:
-
-```typescript
-// NEW SERVICE 4: CRM Sync Service
-await runMQ.process<UserCreatedEvent>('user.created', {
-  name: 'crmSyncService',      // Creates new isolated queue
-  consumersCount: 1,
-  attempts: 3
-}, async (message: RunMQMessage<UserCreatedEvent>) => {
-  console.log(`[CRM] Syncing user to CRM: ${message.message.userId}`);
-  await syncToCRM(message.message);
-});
-
-// This new service automatically receives all future user.created events
-// No changes needed to existing services!
-```
-
-## Job Queue Pattern Example
-
-### Scenario: Background Email Processing
-
-The other common pattern is using RunMQ as a job queue for background processing tasks.
-Where there's a publisher queuing jobs, and a worker service processing them asynchronously with retries and DLQ support.
-
-```typescript
-import { RunMQ, RunMQMessage } from 'runmq';
-
-interface EmailJob {
-  to: string;
-  subject: string;
-  body: string;
-  attachments?: string[];
-}
-
-const runMQ = await RunMQ.start({
-  url: 'amqp://localhost:5672'
-});
-
-// ============================================
-// WORKER: Email Processing Service
-// ============================================
-await runMQ.process<EmailJob>('email.send', {
-  name: 'emailWorker',         // Single queue for job processing
-  consumersCount: 5,           // 5 concurrent workers
-  attempts: 3,
-  attemptsDelay: 5000,
-  messageSchema: {
-    type: 'ajv',
-    schema: {
-      type: 'object',
-      properties: {
-        to: { type: 'string', format: 'email' },
-        subject: { type: 'string' },
-        body: { type: 'string' },
-        attachments: { 
-          type: 'array', 
-          items: { type: 'string' } 
-        }
-      },
-      required: ['to', 'subject', 'body']
-    },
-    failureStrategy: 'dlq'
-  }
-}, async (message: RunMQMessage<EmailJob>) => {
-  console.log(`[Worker] Sending email to ${message.message.to}`);
-  
-  await sendEmail({
-    to: message.message.to,
-    subject: message.message.subject,
-    body: message.message.body,
-    attachments: message.message.attachments
-  });
-  
-  console.log(`[Worker] Email sent successfully to ${message.message.to}`);
-});
-
-// ============================================
-// PUBLISHER: API Endpoint
-// ============================================
-// Your API can now queue emails for background processing
-app.post('/api/send-email', async (req, res) => {
-  const { to, subject, body } = req.body;
-  
-  // Queue the job - returns immediately
-  runMQ.publish('email.send', {
-    to,
-    subject,
-    body,
-    attachments: []
-  });
-  
-  res.json({ status: 'queued' });
-});
-```
-
-### Job Processing Flow
+The Event Bus pattern allows multiple services (or processors) to react independently to the same events. Each service has its own queue and DLQ, ensuring full isolation and autonomy.
 
 ```
-API Request → Publish Job → Queue (emailWorker)
-                              ↓
-                         5 Concurrent Workers
-                              ↓
-                      [Success] or [Try processing for 3 times]
-                              ↓
-                      [Final Failure] → DLQ (emailWorker_dlq)
+Publisher → Topic (user.created)
+              ├→ Queue: emailService       → DLQ: emailService_dlq
+              ├→ Queue: analyticsService   → DLQ: analyticsService_dlq
+              └→ Queue: notificationService → DLQ: notificationService_dlq
 ```
 
-## Features in Detail
+**Key insights:**
+- Publishing a single message delivers it to all processors subscribed to the topic.
+- Each processor can have its own retry policy, consumer count, and delay configuration.
+- Easily add new services by subscribing to existing topics.
+- Dead Letter Queues allow failed messages to be captured without affecting other services.
+- This architecture ensures microservices autonomy, reliability, and scalability.
+- Schema validation ensures that only valid messages are processed; invalid messages can be routed to the DLQ automatically.
+
+### 2. Background Processing Pattern
+
+RunMQ can also act as a job queue for background tasks. A worker service processes jobs from a dedicated queue with retries and DLQ support.
+
+```
+Publisher → Topic (email.send) → Queue: emailWorker → DLQ: emailWorker_dlq
+```
+
+**Key insights:**
+- Dead Letter Queues allow failed messages to be captured without affecting other services.
+- Schema validation ensures that only valid messages are processed; invalid messages can be routed to the DLQ automatically.
+- Multiple concurrent workers can process jobs in parallel for high throughput.
+
+<br>
+
+## Advanced Features
 
 ### Schema Validation
 
-RunMQ supports JSON schema validation to ensure message integrity, so only valid messages are passed to your processors
-Currently, only AJV is supported for schema validation, with a single failure strategy of sending invalid messages to the DLQ in the meantime.
-if the schema validation fails, the message is sent directly to the DLQ without being processed.
+RunMQ supports JSON Schema validation to ensure message integrity, so only valid messages are passed to your processors.
+- Currently, AJV is supported for schema validation.
+- Invalid messages are sent directly to the DLQ without being sent to the processor.
 
 ```typescript
 const orderSchema = {
@@ -326,95 +195,92 @@ await runMQ.process('order.placed', {
   await processOrder(message.message);
 });
 ```
-
-### Queue Isolation and Naming
-
-**Important:** Each processor creates an isolated queue based on its `name` parameter:
-
-- Queue name: `{processor.name}`
-- DLQ name: `{processor.name}_dlq`
-
-This ensures:
-- ✅ Processors can't interfere with each other
-- ✅ Each processor controls its own retry logic
-- ✅ Failed messages are isolated per processor
-- ✅ Easy to monitor and debug per-processor queues
-
-Example:
-```typescript
-// Creates queue: userEmailService and userEmailService_dlq
-await runMQ.process('user.created', { name: 'userEmailService', ... }, handler);
-
-// Creates queue: userAnalytics and userAnalytics_dlq
-await runMQ.process('user.created', { name: 'userAnalytics', ... }, handler);
-```
+**Key insights:**
+- Schema validation enforces message correctness before processing, reducing runtime errors.
+- Only messages matching the schema reach your business logic.
+- DLQ ensures that invalid messages are captured and can be inspected later.
 
 ### Custom Logger
 
-The default loger uses console, but you can implement your own logger by implementing the `RunMQLogger` interface:
+RunMQ uses a default console logger, but you can provide a custom logger by implementing the RunMQLogger interface:
 
 ```typescript
 import { RunMQLogger } from 'runmq';
 
 class CustomLogger implements RunMQLogger {
   log(message: string): void {
-    // Your logging implementation
+    // Custom info logging
   }
   
   error(message: string, error?: any): void {
-    // Your error logging implementation
+    // Custom error logging
   }
 }
 
+// Pass the custom logger when starting RunMQ
 const runMQ = await RunMQ.start(config, new CustomLogger());
 ```
 
-## Configuration
+**Key insights:**
+- Custom loggers allow integration with centralized logging systems (e.g., Winston, Bunyan, Datadog).
+- Both info and error methods can be customized to suit your monitoring strategy.
+
+<br>
+
+## ⚙️ Types
 
 ### Connection Configuration
 
-```typescript
-interface RunMQConnectionConfig {
-  url: string;                    // The URL of the RabbitMQ server.
-  reconnectDelay?: number;        // The delay in milliseconds before attempting to reconnect after a disconnection (default: 5000)
-  maxReconnectAttempts?: number;  // Maximum reconnection attempts (default: 5)
-}
-```
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `url` | `string` | — | The URL of the RabbitMQ server. |
+| `reconnectDelay` | `number` | `5000` | Delay in milliseconds before attempting to reconnect after a disconnection. |
+| `maxReconnectAttempts` | `number` | `5` | Maximum number of reconnection attempts. |
+| `management` | `ManagementConfiguration` | — | RabbitMQ management API configuration. |
+
+---
+
+### Management configuration
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `url` | `string` | `"http://localhost:15672/"` | The URL of the RabbitMQ management API. |
+| `username` | `string` | `"guest"` | Username for management API authentication. |
+| `password` | `string` | `"guest"` | Password for management API authentication. |
+
+---
 
 ### Processor Configuration
 
-```typescript
-interface RunMQProcessorConfiguration {
-  name: string;                   //  The name of the processor, used to create isolated queues for each processor.
-  consumersCount: number;         // The number of concurrent consumers to run for this processor.
-  attempts?: number;             // The maximum number attempts processing a message, default is 1 attempt.
-  attemptsDelay?: number;           // The delay in milliseconds between attempts.
-  messageSchema?: MessageSchema; // The schema configuration for message validation.
-}
-```
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `name` | `string` | — | Unique name of the processor, used to create isolated queues. |
+| `consumersCount` | `number` | — | Number of concurrent consumers for this processor. |
+| `attempts` | `number` | `1` | Maximum attempts to process a message. |
+| `attemptsDelay` | `number` | `1000` | Delay in milliseconds between attempts. |
+| `messageSchema` | `MessageSchema` | — | Optional schema configuration for message validation. |
+
+---
 
 ### Message Schema Configuration
 
-```typescript
-interface MessageSchema {
-  type: 'ajv';                   // The type of schema used for validation (Currently only 'ajv').
-  schema: any;                   // The schema definition of the chosen schemaType, used for validating messages.
-  failureStrategy: 'dlq';        // The strategy to apply when schema validation fails (e.g., 'dlq').
-}
-```
+| Property | Type | Description |
+|----------|------|-------------|
+| `type` | `'ajv'` | Type of schema used for validation (currently only AJV supported). |
+| `schema` | `any` | Schema definition for validating messages. |
+| `failureStrategy` | `'dlq'` | Strategy applied when schema validation fails (e.g., move to DLQ). |
 
-## Message Structure
+---
 
-```typescript
-interface RunMQMessageContent<T> {
-  message: T;                    // Your message payload
-  meta: {
-    id: string;                  // The unique identifier of the message.
-    publishedAt: number;         // The timestamp when the message was published.
-    correlationId: string;       // The correlation identifier.
-  }
-}
-```
+## 📦 Message Structure
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `message` | `T` | Your message payload. |
+| `meta.id` | `string` | Unique identifier of the message. |
+| `meta.publishedAt` | `number` | Timestamp when the message was published. |
+| `meta.correlationId` | `string` | Correlation identifier for tracing. |
+
 
 ## License
 
