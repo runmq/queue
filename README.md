@@ -68,7 +68,8 @@ await runMQ.process('user.created', {
     name: 'emailService',        // Unique processor name (creates an isolated queue)
     consumersCount: 2,           // Process up to 2 messages concurrently
     attempts: 3,                 // Retry failed messages up to 3 times
-    attemptsDelay: 2000          // Wait 2 seconds between retries
+    attemptsDelay: 2000,         // Wait 2 seconds between retries
+    usePoliciesForDelay: true    // highly recommended, default is false
 }, async (message) => {
     console.log('EmailService received:', message.message);
     await sendEmail(message.message);
