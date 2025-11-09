@@ -1,5 +1,5 @@
 <div align="center">
-  <img width="1479" height="612" alt="RunMQ-logo (4)" src="https://github.com/user-attachments/assets/f1327ebf-5d30-4f82-921c-14422c49b1d8" />
+  <img width="1479" height="612" alt="RunMQ-logo (4)" src="https://github.com/user-attachments/assets/50dc9187-26f9-4073-979b-31601c652e1f" />
    <a href="https://badge.fury.io/js/runmq.svg">
       <img src="https://badge.fury.io/js/runmq.svg"/>
     </a>
