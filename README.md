@@ -1,8 +1,8 @@
 <div align="center">
   <img width="1479" height="612" alt="RunMQ-logo (4)" src="https://github.com/user-attachments/assets/50dc9187-26f9-4073-979b-31601c652e1f" />
-   <a href="[https://badge.fury.io/js/runmq.svg](https://www.npmjs.com/package/runmq)">
-      <img src="https://badge.fury.io/js/runmq.svg"/>
-    </a>
+   <a href="https://www.npmjs.com/package/runmq">
+     <img src="https://badge.fury.io/js/runmq.svg?icon=si%3Anpm" alt="npm version" height="18">
+   </a>
     <a href="https://github.com/semantic-release/semantic-release">
       <img src="https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg"/>
     </a>
@@ -258,9 +258,9 @@ const runMQ = await RunMQ.start(config, new CustomLogger());
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `url` | `string` | `"http://localhost:15672/"` | The URL of the RabbitMQ management API. |
-| `username` | `string` | `"guest"` | Username for management API authentication. |
-| `password` | `string` | `"guest"` | Password for management API authentication. |
+| `url` | `string` | - | The URL of the RabbitMQ management API. |
+| `username` | `string` | - | Username for management API authentication. |
+| `password` | `string` | - | Password for management API authentication. |
 
 ---
 
