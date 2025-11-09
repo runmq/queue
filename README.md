@@ -272,6 +272,8 @@ const runMQ = await RunMQ.start(config, new CustomLogger());
 | `attempts` | `number` | `1` | Maximum attempts to process a message. |
 | `attemptsDelay` | `number` | `1000` | Delay in milliseconds between attempts. |
 | `messageSchema` | `MessageSchema` | — | Optional schema configuration for message validation. |
+| `usePoliciesForDelay` | `boolean` | false | Optional configuration to use Policies for attempts delay, highly recommended. |
+
 
 ---
 
