@@ -1,6 +1,6 @@
 <div align="center">
   <img width="1479" height="612" alt="RunMQ-logo (4)" src="https://github.com/user-attachments/assets/50dc9187-26f9-4073-979b-31601c652e1f" />
-   <a href="https://badge.fury.io/js/runmq.svg">
+   <a href="[https://badge.fury.io/js/runmq.svg](https://www.npmjs.com/package/runmq)">
       <img src="https://badge.fury.io/js/runmq.svg"/>
     </a>
     <a href="https://github.com/semantic-release/semantic-release">
