@@ -2,6 +2,7 @@ services:
   rabbitmq:
     image: rabbitmq:${RABBITMQ_VERSION:-3.12-management}
     container_name: runmq-rabbitmq-test
+    user: "999:999" # RabbitMQ default UID:GID
     ports:
       - "5673:5672"
       - "15673:15672"
