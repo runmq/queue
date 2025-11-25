@@ -5,6 +5,12 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+if ! command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE="docker compose"
+else
+    DOCKER_COMPOSE="docker-compose"
+fi
+
 print_status() {
     echo -e "${GREEN}[INFO]${NC} $1"
 }
@@ -19,7 +25,7 @@ print_error() {
 
 cleanup() {
     print_status "Cleaning up..."
-    docker-compose down -v
+    $DOCKER_COMPOSE down -v
     exit $1
 }
 
@@ -32,23 +38,23 @@ if ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
-    print_error "docker-compose is not installed or not in PATH."
+if ! command -v $DOCKER_COMPOSE &> /dev/null; then
+    print_error "$DOCKER_COMPOSE is not installed or not in PATH."
     exit 1
 fi
 
 print_status "Stopping any existing test containers..."
-docker-compose down -v
+$DOCKER_COMPOSE down -v
 
 print_status "Starting RabbitMQ container..."
-docker-compose up -d rabbitmq
+$DOCKER_COMPOSE up -d rabbitmq
 
 print_status "Waiting for RabbitMQ to be ready..."
 RETRY_COUNT=0
 MAX_RETRIES=30
 
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    if docker-compose exec -T rabbitmq rabbitmq-diagnostics -q ping >/dev/null 2>&1; then
+    if $DOCKER_COMPOSE exec -T rabbitmq rabbitmq-diagnostics -q ping >/dev/null 2>&1; then
         print_status "RabbitMQ is ready!"
         break
     fi
@@ -60,7 +66,7 @@ done
 
 if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
     print_error "RabbitMQ failed to start within expected time"
-    docker-compose logs rabbitmq
+    $DOCKER_COMPOSE logs rabbitmq
     exit 1
 fi
 
@@ -71,7 +77,7 @@ print_status "Verifying RabbitMQ connection..."
 if ! nc -z localhost 5673; then
     print_error "Cannot connect to RabbitMQ on port 5673"
     print_status "RabbitMQ container logs:"
-    docker-compose logs rabbitmq
+    $DOCKER_COMPOSE logs rabbitmq
     exit 1
 fi
 
@@ -89,7 +95,7 @@ print_status "Running E2E tests..."
 if ! npm run test:e2e; then
     print_error "E2E tests failed"
     print_status "RabbitMQ container logs:"
-    docker-compose logs rabbitmq
+    $DOCKER_COMPOSE logs rabbitmq
     exit 1
 fi
 
