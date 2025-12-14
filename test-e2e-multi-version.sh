@@ -24,7 +24,7 @@ print_version() {
 
 cleanup() {
     print_status "Cleaning up..."
-    docker-compose down -v
+    docker compose down -v
     exit $1
 }
 
@@ -48,8 +48,8 @@ if ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
-    print_error "docker-compose is not installed or not in PATH."
+if ! command -v docker compose &> /dev/null; then
+    print_error "docker compose is not installed or not in PATH."
     exit 1
 fi
 
@@ -65,10 +65,10 @@ for VERSION in "${RABBITMQ_VERSIONS[@]}"; do
     export RABBITMQ_VERSION="$VERSION"
     
     print_status "Stopping any existing test containers..."
-    docker-compose down -v
+    docker compose down -v
     
     print_status "Starting RabbitMQ container (version: $VERSION)..."
-    docker-compose up -d rabbitmq
+    docker compose up -d rabbitmq
     
     print_status "Waiting for RabbitMQ to be ready..."
     RETRY_COUNT=0
@@ -76,15 +76,15 @@ for VERSION in "${RABBITMQ_VERSIONS[@]}"; do
     
     while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
         # Check if container is running
-        CONTAINER_STATUS=$(docker-compose ps -q rabbitmq | xargs docker inspect -f '{{.State.Status}}' 2>/dev/null || echo "not_found")
+        CONTAINER_STATUS=$(docker compose ps -q rabbitmq | xargs docker inspect -f '{{.State.Status}}' 2>/dev/null || echo "not_found")
         print_warning "RabbitMQ container status: $CONTAINER_STATUS"
         if [ "$CONTAINER_STATUS" = "exited" ] || [ "$CONTAINER_STATUS" = "" ]; then
             print_warning "RabbitMQ container exited or not found. Restarting..."
-            docker-compose up -d rabbitmq
+            docker compose up -d rabbitmq
             sleep 5
         fi
         
-        if docker-compose exec -T rabbitmq rabbitmq-diagnostics -q ping >/dev/null 2>&1; then
+        if docker compose exec -T rabbitmq rabbitmq-diagnostics -q ping >/dev/null 2>&1; then
             print_status "RabbitMQ is ready!"
             break
         fi
@@ -96,7 +96,7 @@ for VERSION in "${RABBITMQ_VERSIONS[@]}"; do
     
     if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
         print_error "RabbitMQ $VERSION failed to start within expected time"
-        docker-compose logs rabbitmq
+        docker compose logs rabbitmq
         FAILED_VERSIONS+=("$VERSION")
         continue
     fi
@@ -108,7 +108,7 @@ for VERSION in "${RABBITMQ_VERSIONS[@]}"; do
     if ! nc -z localhost 5673; then
         print_error "Cannot connect to RabbitMQ $VERSION on port 5673"
         print_status "RabbitMQ container logs:"
-        docker-compose logs rabbitmq
+        docker compose logs rabbitmq
         FAILED_VERSIONS+=("$VERSION")
         continue
     fi
@@ -128,7 +128,7 @@ for VERSION in "${RABBITMQ_VERSIONS[@]}"; do
     if ! npm run test:e2e; then
         print_error "E2E tests failed for RabbitMQ $VERSION"
         print_status "RabbitMQ container logs:"
-        docker-compose logs rabbitmq
+        docker compose logs rabbitmq
         FAILED_VERSIONS+=("$VERSION")
         continue
     fi
@@ -137,7 +137,7 @@ for VERSION in "${RABBITMQ_VERSIONS[@]}"; do
     PASSED_VERSIONS+=("$VERSION")
     
     # Clean up before next version
-    docker-compose down -v
+    docker compose down -v
     sleep 2
 done
 
