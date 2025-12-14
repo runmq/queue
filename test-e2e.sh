@@ -19,7 +19,7 @@ print_error() {
 
 cleanup() {
     print_status "Cleaning up..."
-    docker-compose down -v
+    docker compose down -v
     exit $1
 }
 
@@ -32,27 +32,40 @@ if ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
-    print_error "docker-compose is not installed or not in PATH."
+if ! command -v docker compose &> /dev/null; then
+    print_error "docker compose is not installed or not in PATH."
     exit 1
 fi
 
 print_status "Stopping any existing test containers..."
-docker-compose down -v
+docker compose down -v
+
+sleep 2
 
 print_status "Starting RabbitMQ container..."
-docker-compose up -d rabbitmq
+docker compose up -d rabbitmq
+
+sleep 3
 
 print_status "Waiting for RabbitMQ to be ready..."
 RETRY_COUNT=0
 MAX_RETRIES=30
 
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    if docker-compose exec -T rabbitmq rabbitmq-diagnostics -q ping >/dev/null 2>&1; then
+    if docker compose exec -T rabbitmq rabbitmq-diagnostics -q ping >/dev/null 2>&1; then
         print_status "RabbitMQ is ready!"
         break
     fi
-    
+
+    if ! docker compose ps rabbitmq | grep -q "Up"; then
+        print_error "RabbitMQ container is not running"
+        print_status "Container status:"
+        docker compose ps rabbitmq
+        print_status "RabbitMQ container logs:"
+        docker compose logs rabbitmq
+        exit 1
+    fi
+
     RETRY_COUNT=$((RETRY_COUNT + 1))
     print_status "Waiting for RabbitMQ... (attempt $RETRY_COUNT/$MAX_RETRIES)"
     sleep 2
@@ -60,7 +73,7 @@ done
 
 if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
     print_error "RabbitMQ failed to start within expected time"
-    docker-compose logs rabbitmq
+    docker compose logs rabbitmq
     exit 1
 fi
 
@@ -71,7 +84,7 @@ print_status "Verifying RabbitMQ connection..."
 if ! nc -z localhost 5673; then
     print_error "Cannot connect to RabbitMQ on port 5673"
     print_status "RabbitMQ container logs:"
-    docker-compose logs rabbitmq
+    docker compose logs rabbitmq
     exit 1
 fi
 
@@ -89,7 +102,7 @@ print_status "Running E2E tests..."
 if ! npm run test:e2e; then
     print_error "E2E tests failed"
     print_status "RabbitMQ container logs:"
-    docker-compose logs rabbitmq
+    docker compose logs rabbitmq
     exit 1
 fi
 
