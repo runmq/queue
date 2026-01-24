@@ -1,5 +1,5 @@
 import {RunMQ} from '@src/core/RunMQ';
-import {AmqplibClient} from "@src/core/clients/AmqplibClient";
+import {RabbitMQClientAdapter} from "@src/core/clients/RabbitMQClientAdapter";
 import {Constants} from "@src/core/constants";
 import {ChannelTestHelpers} from "@tests/helpers/ChannelTestHelpers";
 import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
@@ -19,7 +19,7 @@ describe('RunMQ Publisher E2E Tests', () => {
 
     describe('publish functionality', () => {
         it('should publish message successfully to the correct queue', async () => {
-            const testingConnection = new AmqplibClient(validConfig);
+            const testingConnection = new RabbitMQClientAdapter(validConfig);
             const channel = await testingConnection.getChannel();
             await ChannelTestHelpers.deleteQueue(channel, configuration.name);
 
@@ -45,7 +45,7 @@ describe('RunMQ Publisher E2E Tests', () => {
         }, 15000);
 
         it('should publish multiple messages successfully', async () => {
-            const testingConnection = new AmqplibClient(validConfig);
+            const testingConnection = new RabbitMQClientAdapter(validConfig);
             const channel = await testingConnection.getChannel();
             await ChannelTestHelpers.deleteQueue(channel, configuration.name);
 
@@ -73,7 +73,7 @@ describe('RunMQ Publisher E2E Tests', () => {
         }, 15000);
 
         it('should handle publishing to non-existent topic gracefully', async () => {
-            const testingConnection = new AmqplibClient(validConfig);
+            const testingConnection = new RabbitMQClientAdapter(validConfig);
             const channel = await testingConnection.getChannel();
             await ChannelTestHelpers.deleteQueue(channel, configuration.name);
 
@@ -98,7 +98,7 @@ describe('RunMQ Publisher E2E Tests', () => {
         }, 15000);
 
         it('should publish message with proper RunMQMessage structure', async () => {
-            const testingConnection = new AmqplibClient(validConfig);
+            const testingConnection = new RabbitMQClientAdapter(validConfig);
             const channel = await testingConnection.getChannel();
             await ChannelTestHelpers.deleteQueue(channel, configuration.name);
 

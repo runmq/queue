@@ -1,21 +1,21 @@
 import {RunMQUtils} from "@src/core/utils/RunMQUtils";
 import {MessageExample} from "@tests/Examples/MessageExample";
-import {MockedRabbitMQChannel} from "@tests/mocks/MockedRabbitMQChannel";
+import {MockedAMQPChannel} from "@tests/mocks/MockedAMQPChannel";
 import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
 import {MockedAmqpMessage} from "@tests/mocks/MockedAmqpMessage";
-import {Channel} from "amqplib";
+import {AMQPChannel} from "@src/types";
 
 export const MockedRabbitMQMessage = new RabbitMQMessage(
     MessageExample.person(),
     RunMQUtils.generateUUID(),
     RunMQUtils.generateUUID(),
-    new MockedRabbitMQChannel(),
+    new MockedAMQPChannel(),
     MockedAmqpMessage,
     {}
 )
 
 export function mockedRabbitMQMessageWithChannelAndMessage(
-    channel: MockedRabbitMQChannel,
+    channel: AMQPChannel,
     message: any,
     id: string,
     correlationId: string
@@ -35,7 +35,7 @@ export function mockedRabbitMQMessageWithDeathCount(count: number) {
         MessageExample.person(),
         RunMQUtils.generateUUID(),
         RunMQUtils.generateUUID(),
-        new MockedRabbitMQChannel(),
+        new MockedAMQPChannel(),
         MockedAmqpMessage,
         {
             "x-death": [
@@ -49,7 +49,7 @@ export function mockedRabbitMQMessageWithDeathCount(count: number) {
 }
 
 
-export function mockedRabbitMQMessageWithChannelAndDeathCount(channel: Channel, count: number) {
+export function mockedRabbitMQMessageWithChannelAndDeathCount(channel: AMQPChannel, count: number) {
     return new RabbitMQMessage(
         MessageExample.person(),
         RunMQUtils.generateUUID(),

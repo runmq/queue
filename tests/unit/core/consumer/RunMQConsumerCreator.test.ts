@@ -1,6 +1,6 @@
 import {ConsumerConfiguration} from '@src/core/consumer/ConsumerConfiguration';
 import {Constants, DEFAULTS} from '@src/core/constants';
-import {MockedRabbitMQChannel} from "@tests/mocks/MockedRabbitMQChannel";
+import {MockedAMQPChannel} from "@tests/mocks/MockedAMQPChannel";
 import {RunMQProcessorConfigurationExample} from "@tests/Examples/RunMQProcessorConfigurationExample";
 import {ConsumerConfigurationExample} from "@tests/Examples/ConsumerConfigurationExample";
 import {RunMQConsumerCreator} from "@src/core/consumer/RunMQConsumerCreator";
@@ -12,7 +12,7 @@ import {RunMQException} from "@src/core/exceptions/RunMQException";
 jest.mock('@src/core/management/Policies/RunMQTTLPolicyManager');
 
 describe('RunMQConsumerCreator Unit Tests', () => {
-    const mockedChannel = new MockedRabbitMQChannel();
+    const mockedChannel = new MockedAMQPChannel();
     const mockedClient = new MockedAMQPClient(mockedChannel);
     const mockTTLPolicyManager = {
         initialize: jest.fn(),
@@ -43,7 +43,7 @@ describe('RunMQConsumerCreator Unit Tests', () => {
         jest.mocked(RunMQTTLPolicyManager).mockImplementation(() => mockTTLPolicyManager as any);
         mockTTLPolicyManager.initialize.mockResolvedValue(undefined);
         mockTTLPolicyManager.apply.mockResolvedValue(true);
-        consumerCreator = new RunMQConsumerCreator(mockedChannel, mockedClient, MockedRunMQLogger, undefined);
+        consumerCreator = new RunMQConsumerCreator(mockedClient, MockedRunMQLogger, undefined);
     });
 
     describe('createConsumer', () => {

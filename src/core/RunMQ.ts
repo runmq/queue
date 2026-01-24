@@ -1,10 +1,9 @@
-import {RunMQProcessorConfiguration, RunMQConnectionConfig, RunMQPublisher, RunMQMessageContent} from "@src/types";
+import {RunMQProcessorConfiguration, RunMQConnectionConfig, RunMQPublisher, RunMQMessageContent, AMQPChannel} from "@src/types";
 import {RunMQException} from "@src/core/exceptions/RunMQException";
-import {AmqplibClient} from "@src/core/clients/AmqplibClient";
+import {RabbitMQClientAdapter} from "@src/core/clients/RabbitMQClientAdapter";
 import {Exceptions} from "@src/core/exceptions/Exceptions";
 import {RunMQUtils} from "@src/core/utils/RunMQUtils";
 import {Constants, DEFAULTS} from "@src/core/constants";
-import {Channel} from "amqplib";
 import {RunMQConsumerCreator} from "@src/core/consumer/RunMQConsumerCreator";
 import {ConsumerConfiguration} from "@src/core/consumer/ConsumerConfiguration";
 import {RunMQLogger} from "@src/core/logging/RunMQLogger";
@@ -14,12 +13,12 @@ import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
 import {RabbitMQMessageProperties} from "@src/core/message/RabbitMQMessageProperties";
 
 export class RunMQ {
-    private readonly amqplibClient: AmqplibClient;
+    private readonly client: RabbitMQClientAdapter;
     private readonly config: RunMQConnectionConfig;
     private publisher: RunMQPublisher | undefined
     private readonly logger: RunMQLogger
     private retryAttempts: number = 0;
-    private defaultChannel: Channel | undefined;
+    private defaultChannel: AMQPChannel | undefined;
 
     private constructor(config: RunMQConnectionConfig, logger: RunMQLogger) {
         this.logger = logger;
@@ -28,7 +27,7 @@ export class RunMQ {
             reconnectDelay: config.reconnectDelay ?? DEFAULTS.RECONNECT_DELAY,
             maxReconnectAttempts: config.maxReconnectAttempts ?? DEFAULTS.MAX_RECONNECT_ATTEMPTS,
         };
-        this.amqplibClient = new AmqplibClient(this.config);
+        this.client = new RabbitMQClientAdapter(this.config);
     }
 
     /**
@@ -51,7 +50,7 @@ export class RunMQ {
      * @param processor The function that will process the incoming messages
      */
     public async process<T = Record<string, never>>(topic: string, config: RunMQProcessorConfiguration, processor: (message: RunMQMessageContent<T>) => Promise<void>) {
-        const consumer = new RunMQConsumerCreator(this.defaultChannel!, this.amqplibClient, this.logger, this.config.management);
+        const consumer = new RunMQConsumerCreator(this.client, this.logger, this.config.management);
         await consumer.createConsumer<T>(new ConsumerConfiguration(topic, config, processor))
     }
 
@@ -62,14 +61,14 @@ export class RunMQ {
      * @param correlationId (Optional) A unique identifier for correlating messages; if not provided, a new UUID will be generated
      */
     public publish(topic: string, message: Record<string, any>, correlationId: string = RunMQUtils.generateUUID()): void {
-        if (!this.publisher) {
+        if (!this.publisher || !this.defaultChannel) {
             throw new RunMQException(Exceptions.NOT_INITIALIZED, {});
         }
         RunMQUtils.assertRecord(message);
         this.publisher.publish(topic,
             RabbitMQMessage.from(
                 message,
-                this.defaultChannel!,
+                this.defaultChannel,
                 new RabbitMQMessageProperties(RunMQUtils.generateUUID(), correlationId)
             )
         );
@@ -85,7 +84,7 @@ export class RunMQ {
      */
     public async disconnect(): Promise<void> {
         try {
-            await this.amqplibClient.disconnect();
+            await this.client.disconnect();
         } catch (error) {
             throw new RunMQException(
                 Exceptions.CONNECTION_NOT_ESTABLISHED,
@@ -100,7 +99,7 @@ export class RunMQ {
      * Checks if the connection is currently active.
      */
     public isActive(): boolean {
-        return this.amqplibClient.isActive();
+        return this.client.isActive();
     }
 
     private async connectWithRetry(): Promise<void> {
@@ -109,7 +108,7 @@ export class RunMQ {
 
         while (this.retryAttempts < maxAttempts) {
             try {
-                await this.amqplibClient.connect();
+                await this.client.connect();
                 this.logger.log('Successfully connected to RabbitMQ');
                 this.retryAttempts = 0;
                 return;
@@ -134,7 +133,7 @@ export class RunMQ {
     }
 
     private async initialize(): Promise<void> {
-        this.defaultChannel = await this.amqplibClient.getChannel();
+        this.defaultChannel = await this.client.getDefaultChannel();
         await this.defaultChannel.assertExchange(Constants.ROUTER_EXCHANGE_NAME, 'direct', {durable: true});
         await this.defaultChannel.assertExchange(Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME, 'direct', {durable: true});
         this.publisher = new RunMQPublisherCreator(this.logger).createPublisher();

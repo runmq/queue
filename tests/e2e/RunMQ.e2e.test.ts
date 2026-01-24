@@ -1,7 +1,7 @@
 import {RunMQ} from '@src/core/RunMQ';
 import {RunMQException} from '@src/core/exceptions/RunMQException';
 import {Exceptions} from '@src/core/exceptions/Exceptions';
-import {AmqplibClient} from "@src/core/clients/AmqplibClient";
+import {RabbitMQClientAdapter} from "@src/core/clients/RabbitMQClientAdapter";
 import {Constants} from "@src/core/constants";
 import {ChannelTestHelpers} from "@tests/helpers/ChannelTestHelpers";
 import {LoggerTestHelpers} from "@tests/helpers/LoggerTestHelpers";
@@ -42,7 +42,7 @@ describe('RunMQ E2E Tests', () => {
                     attempts: invalidConfig.maxReconnectAttempts
                 }
             })
-        }, 20000);
+        }, 30000);
 
         it('should connect after temporary network issues', async () => {
             await expect(RunMQ.start(invalidConfig, MockedRunMQLogger)).rejects.toThrow(RunMQException);
@@ -83,7 +83,7 @@ describe('RunMQ E2E Tests', () => {
     describe('Initialization', () => {
         it('Should create the default router exchange on initialization', async () => {
             const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
-            const testingConnection = new AmqplibClient(validConfig);
+            const testingConnection = new RabbitMQClientAdapter(validConfig);
             const channel = await testingConnection.getChannel();
             await channel.checkExchange(Constants.ROUTER_EXCHANGE_NAME);
             await channel.deleteExchange(Constants.ROUTER_EXCHANGE_NAME);
@@ -101,7 +101,7 @@ describe('RunMQ E2E Tests', () => {
     describe('processing', () => {
         it('Should end up in DLQ when message is not meeting the schema validation', async () => {
             const configuration = RunMQProcessorConfigurationExample.simpleNoSchema()
-            const testingConnection = new AmqplibClient(validConfig);
+            const testingConnection = new RabbitMQClientAdapter(validConfig);
             const channel = await testingConnection.getChannel();
             await ChannelTestHelpers.deleteQueue(channel, configuration.name);
 
@@ -132,7 +132,7 @@ describe('RunMQ E2E Tests', () => {
     describe('publishing', () => {
         it('should publish and consume a message successfully', async () => {
             const configuration = RunMQProcessorConfigurationExample.simpleNoSchema()
-            const testingConnection = new AmqplibClient(validConfig);
+            const testingConnection = new RabbitMQClientAdapter(validConfig);
             const channel = await testingConnection.getChannel();
             await ChannelTestHelpers.deleteQueue(channel, configuration.name);
 

@@ -1,8 +1,6 @@
 import {RunMQBaseProducer} from '@src/core/publisher/producers/RunMQBaseProducer';
 import {RunMQMessage, RunMQMessageMeta} from '@src/core/message/RunMQMessage';
 import {Constants} from '@src/core/constants';
-import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
-import {RabbitMQMessageProperties} from "@src/core/message/RabbitMQMessageProperties";
 import {MockedRabbitMQChannel} from "@tests/mocks/MockedRabbitMQChannel";
 import {MockedRabbitMQMessage, mockedRabbitMQMessageWithChannelAndMessage} from "@tests/mocks/MockedRabbitMQMessage";
 import {MockedDefaultSerializer} from "@tests/mocks/MockedDefaultSerializer";

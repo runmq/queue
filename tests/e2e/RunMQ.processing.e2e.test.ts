@@ -1,5 +1,5 @@
 import {RunMQ} from '@src/core/RunMQ';
-import {AmqplibClient} from "@src/core/clients/AmqplibClient";
+import {RabbitMQClientAdapter} from "@src/core/clients/RabbitMQClientAdapter";
 import {Constants} from "@src/core/constants";
 import {ChannelTestHelpers} from "@tests/helpers/ChannelTestHelpers";
 import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
@@ -19,7 +19,7 @@ describe('RunMQ E2E Tests', () => {
         jest.clearAllMocks();
     });
 
-    const testingConnection = new AmqplibClient(validConfig);
+    const testingConnection = new RabbitMQClientAdapter(validConfig);
 
     describe('processing behaviours', () => {
         it('Should process the message correctly given valid RunMQMessage structure without schema', async () => {

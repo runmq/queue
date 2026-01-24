@@ -10,9 +10,8 @@ import {
 
 describe('RunMQSucceededMessageAcknowledgerProcessor', () => {
     const message = {
-        channel: {
-            ack: jest.fn()
-        }
+        ack: jest.fn(),
+        nack: jest.fn()
     } as unknown as jest.Mocked<RabbitMQMessage>;
 
     beforeEach(() => {
@@ -24,7 +23,7 @@ describe('RunMQSucceededMessageAcknowledgerProcessor', () => {
         const processor = new RunMQSucceededMessageAcknowledgerProcessor(successfulConsumer)
         const result = await processor.consume(message)
         expect(result).toBe(true)
-        expect(message.channel.ack).toHaveBeenCalledWith(message.message)
+        expect(message.ack).toHaveBeenCalled()
     });
 
     it("should return false and not ack message when result is false", async () => {
@@ -32,7 +31,7 @@ describe('RunMQSucceededMessageAcknowledgerProcessor', () => {
         const processor = new RunMQSucceededMessageAcknowledgerProcessor(failedConsumer)
         const result = await processor.consume(message)
         expect(result).toBe(false)
-        expect(message.channel.ack).not.toHaveBeenCalled()
+        expect(message.ack).not.toHaveBeenCalled()
     })
 
     it("should rethrow when consumer throws", async () => {

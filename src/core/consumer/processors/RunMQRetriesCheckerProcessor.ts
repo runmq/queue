@@ -50,7 +50,7 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
 
     private acknowledgeMessage(message: RabbitMQMessage) {
         try {
-            message.channel.ack(message.amqpMessage!, false);
+            message.ack();
         } catch (e) {
             const error = new Error("A message acknowledge failed after publishing to final dead letter");
             this.logger.error(error.message, {cause: e instanceof Error ? e.message : String(e)});
