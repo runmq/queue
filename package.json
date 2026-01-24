@@ -54,7 +54,6 @@
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^11.0.1",
     "@semantic-release/release-notes-generator": "^11.0.7",
-    "@types/amqplib": "^0.10.7",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.0.0",
     "eslint": "^9.29.0",
@@ -69,7 +68,7 @@
   },
   "dependencies": {
     "ajv": "^8.17.1",
-    "amqplib": "^0.10.8"
+    "rabbitmq-client": "^5.0.0"
   },
   "release": {
     "branches": [

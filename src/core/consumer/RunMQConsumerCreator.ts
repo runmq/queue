@@ -1,4 +1,3 @@
-import {Channel} from "amqplib";
 import {ConsumerConfiguration} from "@src/core/consumer/ConsumerConfiguration";
 import {Constants, DEFAULTS} from "@src/core/constants";
 import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
@@ -14,7 +13,7 @@ import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 import {DefaultDeserializer} from "@src/core/serializers/deserializer/DefaultDeserializer";
 import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
 import {RunMQPublisherCreator} from "@src/core/publisher/RunMQPublisherCreator";
-import {AMQPClient, RabbitMQManagementConfig} from "@src/types";
+import {AMQPChannel, AMQPClient, RabbitMQManagementConfig} from "@src/types";
 import {RunMQTTLPolicyManager} from "@src/core/management/Policies/RunMQTTLPolicyManager";
 import {RunMQException} from "@src/core/exceptions/RunMQException";
 import {Exceptions} from "@src/core/exceptions/Exceptions";
@@ -23,7 +22,6 @@ export class RunMQConsumerCreator {
     private ttlPolicyManager: RunMQTTLPolicyManager;
 
     constructor(
-        private defaultChannel: Channel,
         private client: AMQPClient,
         private logger: RunMQLogger,
         managementConfig?: RabbitMQManagementConfig
@@ -80,12 +78,14 @@ export class RunMQConsumerCreator {
 
 
     private async assertQueues<T>(consumerConfiguration: ConsumerConfiguration<T>) {
-        await this.defaultChannel.assertQueue(consumerConfiguration.processorConfig.name, {
+        const defaultChannel = await this.client.getDefaultChannel();
+
+        await defaultChannel.assertQueue(consumerConfiguration.processorConfig.name, {
             durable: true,
             deadLetterExchange: Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME,
             deadLetterRoutingKey: consumerConfiguration.processorConfig.name
         });
-        await this.defaultChannel.assertQueue(ConsumerCreatorUtils.getDLQTopicName(consumerConfiguration.processorConfig.name), {
+        await defaultChannel.assertQueue(ConsumerCreatorUtils.getDLQTopicName(consumerConfiguration.processorConfig.name), {
             durable: true,
             deadLetterExchange: Constants.ROUTER_EXCHANGE_NAME,
             deadLetterRoutingKey: consumerConfiguration.processorConfig.name
@@ -97,7 +97,7 @@ export class RunMQConsumerCreator {
 
         const policiesForTTL = consumerConfiguration.processorConfig.usePoliciesForDelay ?? false;
         if (!policiesForTTL) {
-            await this.defaultChannel.assertQueue(retryDelayQueueName, {
+            await defaultChannel.assertQueue(retryDelayQueueName, {
                 durable: true,
                 deadLetterExchange: Constants.ROUTER_EXCHANGE_NAME,
                 messageTtl: messageDelay,
@@ -110,7 +110,7 @@ export class RunMQConsumerCreator {
             messageDelay
         );
         if (result) {
-            await this.defaultChannel.assertQueue(retryDelayQueueName, {
+            await defaultChannel.assertQueue(retryDelayQueueName, {
                 durable: true,
                 deadLetterExchange: Constants.ROUTER_EXCHANGE_NAME
             });
@@ -126,29 +126,31 @@ export class RunMQConsumerCreator {
 
 
     private async bindQueues<T>(consumerConfiguration: ConsumerConfiguration<T>) {
-        await this.defaultChannel.bindQueue(
+        const defaultChannel = await this.client.getDefaultChannel();
+
+        await defaultChannel.bindQueue(
             consumerConfiguration.processorConfig.name,
             Constants.ROUTER_EXCHANGE_NAME,
             consumerConfiguration.topic
         );
-        await this.defaultChannel.bindQueue(
+        await defaultChannel.bindQueue(
             consumerConfiguration.processorConfig.name,
             Constants.ROUTER_EXCHANGE_NAME,
             consumerConfiguration.processorConfig.name
         );
-        await this.defaultChannel.bindQueue(
+        await defaultChannel.bindQueue(
             ConsumerCreatorUtils.getRetryDelayTopicName(consumerConfiguration.processorConfig.name),
             Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME,
             consumerConfiguration.processorConfig.name
         );
-        await this.defaultChannel.bindQueue(
+        await defaultChannel.bindQueue(
             ConsumerCreatorUtils.getDLQTopicName(consumerConfiguration.processorConfig.name),
             Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME,
             ConsumerCreatorUtils.getDLQTopicName(consumerConfiguration.processorConfig.name)
         );
     }
 
-    private async getProcessorChannel(): Promise<Channel> {
+    private async getProcessorChannel(): Promise<AMQPChannel> {
         return await this.client.getChannel()
     }
 }
