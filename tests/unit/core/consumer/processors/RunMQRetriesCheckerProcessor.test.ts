@@ -8,7 +8,7 @@ import {
     mockedRabbitMQMessageWithDeathCount
 } from "@tests/mocks/MockedRabbitMQMessage";
 import {MockedRabbitMQPublisher} from "@tests/mocks/MockedRunMQPublisher";
-import {MockedRabbitMQChannelWithAcknowledgeFailure} from "@tests/mocks/MockedRabbitMQChannel";
+import {MockedAMQPChannelWithAcknowledgeFailure} from "@tests/mocks/MockedAMQPChannel";
 
 describe('RunMQRetriesCheckerProcessor', () => {
     const consumer = new MockedThrowableRabbitMQConsumer()
@@ -38,7 +38,7 @@ describe('RunMQRetriesCheckerProcessor', () => {
             ConsumerCreatorUtils.getDLQTopicName(processorConfig.name),
             message
         )
-        expect(message.channel.ack).toHaveBeenCalledWith(message.amqpMessage, false);
+        expect(message.channel.ack).toHaveBeenCalledWith(message.amqpMessage);
     })
 })
 
@@ -48,7 +48,7 @@ describe('RunMQRetriesCheckerProcessor - acknowledgeMessage', () => {
 
     it("should throw error if acknowledge message failed", async () => {
         const message = mockedRabbitMQMessageWithChannelAndDeathCount(
-            new MockedRabbitMQChannelWithAcknowledgeFailure(),
+            new MockedAMQPChannelWithAcknowledgeFailure(),
             2
         )
         const runMQPublisher = new MockedRabbitMQPublisher()
