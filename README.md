@@ -15,7 +15,6 @@ It combines RabbitMQ’s proven reliability with a modern developer experience �
 
 Whether you’re running <b>background jobs</b>, designing an <b>event-driven architecture</b>, or managing a <b>pub/sub event bus</b>, RunMQ provides everything you need — all in a <b>lightweight package</b> with a <b>simple DX</b>, <b>without the hassle of managing everything on your own</b>.
 
-
 ## Features
 
 - **Reliable Message Processing with Retries**: Automatically retries failed messages with configurable delays and retry limits.
