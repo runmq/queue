@@ -25,6 +25,9 @@ export class RunMQMetadataManager {
      * Initialize the manager by checking if management plugin is available.
      */
     public async initialize(): Promise<void> {
+        if (this.isManagementPluginEnabled) {
+            return;
+        }
         if (!this.managementClient) {
             this.logger.warn("Management client not configured - metadata storage disabled");
             return;

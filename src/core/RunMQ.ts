@@ -15,6 +15,7 @@ import {RabbitMQMessageProperties} from "@src/core/message/RabbitMQMessageProper
 export class RunMQ {
     private readonly client: RabbitMQClientAdapter;
     private readonly config: RunMQConnectionConfig;
+    private readonly consumer: RunMQConsumerCreator;
     private publisher: RunMQPublisher | undefined
     private readonly logger: RunMQLogger
     private retryAttempts: number = 0;
@@ -28,6 +29,7 @@ export class RunMQ {
             maxReconnectAttempts: config.maxReconnectAttempts ?? DEFAULTS.MAX_RECONNECT_ATTEMPTS,
         };
         this.client = new RabbitMQClientAdapter(this.config, this.logger);
+        this.consumer = new RunMQConsumerCreator(this.client, this.logger, this.config.management);
     }
 
     /**
@@ -50,8 +52,7 @@ export class RunMQ {
      * @param processor The function that will process the incoming messages
      */
     public async process<T = Record<string, never>>(topic: string, config: RunMQProcessorConfiguration, processor: (message: RunMQMessageContent<T>) => Promise<void>) {
-        const consumer = new RunMQConsumerCreator(this.client, this.logger, this.config.management);
-        await consumer.createConsumer<T>(new ConsumerConfiguration(topic, config, processor))
+        await this.consumer.createConsumer<T>(new ConsumerConfiguration(topic, config, processor))
     }
 
     /**
