@@ -43,7 +43,7 @@ export class RabbitMQClientAdapter implements AMQPClient {
 
             // Set up event handlers before waiting for connection
             this.connection.on('error', (err) => {
-                console.error('RabbitMQ connection error:', err);
+                this.logger.error('RabbitMQ connection error:', err);
                 this.isConnected = false;
             });
 
@@ -52,11 +52,11 @@ export class RabbitMQClientAdapter implements AMQPClient {
             });
 
             this.connection.on('connection.blocked', (reason) => {
-                console.warn('RabbitMQ connection blocked:', reason);
+                this.logger.warn('RabbitMQ connection blocked:', reason);
             });
 
             this.connection.on('connection.unblocked', () => {
-                console.info('RabbitMQ connection unblocked');
+                this.logger.info('RabbitMQ connection unblocked');
             });
 
             // Wait for connection with timeout
