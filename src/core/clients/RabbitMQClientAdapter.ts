@@ -16,7 +16,8 @@ export class RabbitMQClientAdapter implements AMQPClient {
     private isConnected: boolean = false;
     private acquiredChannels: Channel[] = [];
 
-    constructor(private config: RunMQConnectionConfig, private logger: RunMQLogger = new RunMQConsoleLogger()) {}
+    constructor(private config: RunMQConnectionConfig, private logger: RunMQLogger = new RunMQConsoleLogger()) {
+    }
 
     public async connect(): Promise<Connection> {
         try {
@@ -44,7 +45,7 @@ export class RabbitMQClientAdapter implements AMQPClient {
 
             // Set up event handlers before waiting for connection
             this.connection.on('error', (err) => {
-                this.logger.error('RabbitMQ connection error:', err);
+                this.logger.error('RabbitMQ connection error:', {error: err});
                 this.isConnected = false;
             });
 
@@ -53,7 +54,7 @@ export class RabbitMQClientAdapter implements AMQPClient {
             });
 
             this.connection.on('connection.blocked', (reason) => {
-                this.logger.warn('RabbitMQ connection blocked:', reason);
+                this.logger.warn('RabbitMQ connection blocked:', {reason: reason});
             });
 
             this.connection.on('connection.unblocked', () => {

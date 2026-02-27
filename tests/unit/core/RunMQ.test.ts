@@ -56,9 +56,9 @@ describe('RunMQ Unit Tests', () => {
         it('should create instance and connect successfully', async () => {
             const mockClient = setupSuccessfulClientMock();
 
-            await RunMQ.start(validConfig);
+            await RunMQ.start(validConfig, MockedRunMQLogger);
 
-            expect(mockClient).toHaveBeenCalledWith(validConfig);
+            expect(mockClient).toHaveBeenCalledWith(validConfig, MockedRunMQLogger);
             expect(mockClient.prototype.connect).toHaveBeenCalled();
             expect(mockClient.prototype.getDefaultChannel).toHaveBeenCalled();
             expect(mockChannel.assertExchange).toHaveBeenCalledWith(
@@ -77,13 +77,13 @@ describe('RunMQ Unit Tests', () => {
             const minimalConfig = {url: RunMQConnectionConfigExample.valid().url};
             const mockClient = setupSuccessfulClientMock();
 
-            await RunMQ.start(minimalConfig);
+            await RunMQ.start(minimalConfig, MockedRunMQLogger);
 
             expect(mockClient).toHaveBeenCalledWith({
                 ...minimalConfig,
                 reconnectDelay: 5000,
                 maxReconnectAttempts: 5
-            });
+            }, MockedRunMQLogger);
         });
 
         it('should retry connection on failure', async () => {
