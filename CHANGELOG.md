@@ -12,6 +12,20 @@
 * **core:** fixing tests ([2cf90c3](https://github.com/runmq/queue/commit/2cf90c32cac92b45db56e28bd81f32225be7bbdc))
 * **core:** using delegated logger in the client adapter ([010cb03](https://github.com/runmq/queue/commit/010cb0348e1cfa648f1da9aad8b6a6fa9863b165))
 
+# [1.3.0](https://github.com/runmq/queue/compare/v1.2.0...v1.3.0) (2026-02-27)
+
+
+### Bug Fixes
+
+* **core:** using default console logger for client adapter ([c8fadf2](https://github.com/runmq/queue/commit/c8fadf28697b67874eaf15d12c2e0db0bf380524))
+
+
+### Features
+
+* **core:** delegating custom logger to the client adapter ([2e20225](https://github.com/runmq/queue/commit/2e202258b6c39fdcd84fe7c938089861f2adb1a3))
+* **core:** fixing tests ([2cf90c3](https://github.com/runmq/queue/commit/2cf90c32cac92b45db56e28bd81f32225be7bbdc))
+* **core:** using delegated logger in the client adapter ([010cb03](https://github.com/runmq/queue/commit/010cb0348e1cfa648f1da9aad8b6a6fa9863b165))
+
 # [1.2.0](https://github.com/runmq/queue/compare/v1.1.1...v1.2.0) (2026-02-27)
 
 
