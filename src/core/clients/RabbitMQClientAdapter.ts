@@ -4,6 +4,7 @@ import {Exceptions} from "@src/core/exceptions/Exceptions";
 import {AMQPChannel, AMQPClient, RunMQConnectionConfig} from "@src/types";
 import {RabbitMQClientChannel} from "@src/core/clients/RabbitMQClientChannel";
 import {RunMQLogger} from "@src";
+import {RunMQConsoleLogger} from "@src/core/logging/RunMQConsoleLogger";
 
 /**
  * AMQPClient implementation using rabbitmq-client library.
@@ -15,7 +16,7 @@ export class RabbitMQClientAdapter implements AMQPClient {
     private isConnected: boolean = false;
     private acquiredChannels: Channel[] = [];
 
-    constructor(private config: RunMQConnectionConfig, private logger: RunMQLogger) {}
+    constructor(private config: RunMQConnectionConfig, private logger: RunMQLogger = new RunMQConsoleLogger()) {}
 
     public async connect(): Promise<Connection> {
         try {
