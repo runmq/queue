@@ -177,7 +177,7 @@ describe('RunMQMetadataManager', () => {
                 mockManagementClient.setParameter.mockResolvedValue(true);
 
                 await metadataManager.initialize();
-                await metadataManager.apply('test_queue', 5, 'custom_vhost');
+                await metadataManager.apply('test_queue', 5);
 
                 expect(mockManagementClient.setParameter).toHaveBeenCalledWith(
                     expect.any(String),

@@ -45,13 +45,11 @@ export class RunMQMetadataManager {
      *
      * @param queueName - The name of the queue
      * @param maxRetries - Maximum retry attempts
-     * @param vhost - Virtual host (default: %2F for /)
      * @returns true if metadata was stored successfully, false otherwise
      */
     public async apply(
         queueName: string,
         maxRetries: number,
-        vhost: string = "%2F"
     ): Promise<boolean> {
         if (!this.isManagementPluginEnabled || !this.managementClient) {
             this.logger.warn(`Cannot store metadata for queue '${queueName}' - management plugin not available`);
@@ -60,7 +58,6 @@ export class RunMQMetadataManager {
 
         try {
             const existingMetadata = await this.getMetadata(queueName);
-
             const metadata = RabbitMQMetadata.createMetadataFor(
                 maxRetries,
                 existingMetadata ?? undefined

@@ -187,7 +187,7 @@ describe('RunMQMetadataManager E2E Tests', () => {
             const queueName = `test_queue_vhost_${Date.now()}`;
             testQueueNames.push(queueName);
 
-            await metadataManager.apply(queueName, 4, "%2F");
+            await metadataManager.apply(queueName, 4);
 
             const metadata = await metadataManager.getMetadata(queueName);
 
