@@ -11,3 +11,5 @@ export {
 } from "./types";
 
 export {RunMQLogger} from "./core/logging/RunMQLogger";
+
+export {RunMQQueueMetadata} from "./core/management/Policies/RunMQQueueMetadata";

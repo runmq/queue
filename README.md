@@ -23,7 +23,7 @@ Whether you’re running <b>background jobs</b>, designing an <b>event-driven ar
 - **Isolated Queues per Processor**: Each processor gets its own dedicated queue and DLQ, ensuring full isolation and predictable behavior across services.
 - **Schema Validation**: Optional JSON Schema validation powered by AJV for safer message handling and data integrity.
 - **Concurrent Consumers**: Scale either horizontally (multiple instances) or vertically (multiple consumers per queue, leveraging RabbitMQ prefetch) to maximize throughput and efficiency.
-- **RabbitMQ Durability & Acknowledgements**: Leverages RabbitMQ’s persistent storage and acknowledgment model to guarantee at-least-once delivery, even across restarts and failures.
+- **RabbitMQ Durability & Acknowledgements**: Leverages RabbitMQ's persistent storage and acknowledgment model to guarantee at-least-once delivery, even across restarts and failures.
 - **Custom Logging**: Plug in your own logger or use the default console logger for full control over message visibility.
 
 ## Installation
@@ -212,7 +212,24 @@ RunMQ can leverage RabbitMQ policies to manage the delay between attempts, it's 
 #### Benefits
 - Flexible and easy management of retry delays
 - Reduces operational overhead
-- Fully compatible with RunMQ’s retry and DLQ mechanisms
+- Fully compatible with RunMQ's retry and DLQ mechanisms
+
+### Queue Metadata Storage
+
+RunMQ automatically stores queue metadata (such as max retries and creation timestamp) using RabbitMQ's parameters API. This enables external tools and dashboards to discover RunMQ-managed queues and understand their configuration without direct access to the application code.
+
+When a processor is configured, RunMQ creates a metadata parameter that stores:
+- **Version**: Schema version for future-proof migrations.
+- **Max Retries**: The configured retry limit for the queue.
+- **Created At**: ISO 8601 timestamp when the queue was first configured.
+- **Updated At**: ISO 8601 timestamp when the configuration was last changed (if applicable).
+
+#### Benefits
+- **Dashboard Integration**: External monitoring tools and dashboards can query RabbitMQ's management API to retrieve queue metadata and display topology information (e.g., "10 retries with 5s delay, then to DLQ").
+- **Self-Documenting Queues**: Queue configurations are discoverable directly from RabbitMQ, without needing access to application source code.
+- **Automatic Updates**: When processor configuration changes, metadata is automatically updated while preserving the original creation timestamp.
+
+> **Note**: This feature requires RabbitMQ Management Plugin to be enabled for external tools to query the metadata parameters and for the parameters to be set.
 
 ### Custom Logger
 

@@ -15,11 +15,13 @@ import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
 import {RunMQPublisherCreator} from "@src/core/publisher/RunMQPublisherCreator";
 import {AMQPChannel, AMQPClient, RabbitMQManagementConfig} from "@src/types";
 import {RunMQTTLPolicyManager} from "@src/core/management/Policies/RunMQTTLPolicyManager";
+import {RunMQMetadataManager} from "@src/core/management/Policies/RunMQMetadataManager";
 import {RunMQException} from "@src/core/exceptions/RunMQException";
 import {Exceptions} from "@src/core/exceptions/Exceptions";
 
 export class RunMQConsumerCreator {
     private ttlPolicyManager: RunMQTTLPolicyManager;
+    private metadataManager: RunMQMetadataManager;
 
     constructor(
         private client: AMQPClient,
@@ -27,17 +29,28 @@ export class RunMQConsumerCreator {
         managementConfig?: RabbitMQManagementConfig
     ) {
         this.ttlPolicyManager = new RunMQTTLPolicyManager(logger, managementConfig);
+        this.metadataManager = new RunMQMetadataManager(logger, managementConfig);
     }
 
     public async createConsumer<T>(consumerConfiguration: ConsumerConfiguration<T>) {
         await this.ttlPolicyManager.initialize();
+        await this.metadataManager.initialize();
         await this.assertQueues<T>(consumerConfiguration);
         await this.bindQueues<T>(consumerConfiguration);
+        await this.storeMetadata<T>(consumerConfiguration);
         for (let i = 0; i < consumerConfiguration.processorConfig.consumersCount; i++) {
             await this.runProcessor<T>(consumerConfiguration);
         }
     }
 
+    private async storeMetadata<T>(consumerConfiguration: ConsumerConfiguration<T>): Promise<void> {
+        const maxRetries = consumerConfiguration.processorConfig.attempts ?? DEFAULTS.PROCESSING_ATTEMPTS;
+
+        await this.metadataManager.apply(
+            consumerConfiguration.processorConfig.name,
+            maxRetries
+        );
+    }
 
     private async runProcessor<T>(consumerConfiguration: ConsumerConfiguration<T>): Promise<void> {
         const consumerChannel = await this.getProcessorChannel();

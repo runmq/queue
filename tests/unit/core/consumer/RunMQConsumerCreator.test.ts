@@ -7,14 +7,20 @@ import {RunMQConsumerCreator} from "@src/core/consumer/RunMQConsumerCreator";
 import {MockedRunMQLogger} from "@tests/mocks/MockedRunMQLogger";
 import {MockedAMQPClient} from "@tests/mocks/MockedAMQPClient";
 import {RunMQTTLPolicyManager} from "@src/core/management/Policies/RunMQTTLPolicyManager";
+import {RunMQMetadataManager} from "@src/core/management/Policies/RunMQMetadataManager";
 import {RunMQException} from "@src/core/exceptions/RunMQException";
 
 jest.mock('@src/core/management/Policies/RunMQTTLPolicyManager');
+jest.mock('@src/core/management/Policies/RunMQMetadataManager');
 
 describe('RunMQConsumerCreator Unit Tests', () => {
     const mockedChannel = new MockedAMQPChannel();
     const mockedClient = new MockedAMQPClient(mockedChannel);
     const mockTTLPolicyManager = {
+        initialize: jest.fn(),
+        apply: jest.fn()
+    };
+    const mockMetadataManager = {
         initialize: jest.fn(),
         apply: jest.fn()
     };
@@ -41,8 +47,11 @@ describe('RunMQConsumerCreator Unit Tests', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         jest.mocked(RunMQTTLPolicyManager).mockImplementation(() => mockTTLPolicyManager as any);
+        jest.mocked(RunMQMetadataManager).mockImplementation(() => mockMetadataManager as any);
         mockTTLPolicyManager.initialize.mockResolvedValue(undefined);
         mockTTLPolicyManager.apply.mockResolvedValue(true);
+        mockMetadataManager.initialize.mockResolvedValue(undefined);
+        mockMetadataManager.apply.mockResolvedValue(true);
         consumerCreator = new RunMQConsumerCreator(mockedClient, MockedRunMQLogger, undefined);
     });
 
@@ -176,6 +185,69 @@ describe('RunMQConsumerCreator Unit Tests', () => {
                     Constants.DLQ_QUEUE_PREFIX + 'customProcessor',
                     expect.any(Object)
                 );
+            });
+        });
+
+        describe('metadata storage', () => {
+            it('should initialize metadata policy manager', async () => {
+                await consumerCreator.createConsumer(testConsumerConfig);
+
+                expect(mockMetadataManager.initialize).toHaveBeenCalled();
+            });
+
+            it('should store metadata with maxRetries from processor config', async () => {
+                await consumerCreator.createConsumer(testConsumerConfig);
+
+                expect(mockMetadataManager.apply).toHaveBeenCalledWith(
+                    testProcessorConfig.name,
+                    testProcessorConfig.attempts
+                );
+            });
+
+            it('should use default processing attempts when not specified', async () => {
+                const configWithoutAttempts = new ConsumerConfiguration(
+                    'test.topic',
+                    {
+                        name: 'noAttemptsProcessor',
+                        consumersCount: 1
+                    },
+                    jest.fn()
+                );
+
+                await consumerCreator.createConsumer(configWithoutAttempts);
+
+                expect(mockMetadataManager.apply).toHaveBeenCalledWith(
+                    'noAttemptsProcessor',
+                    DEFAULTS.PROCESSING_ATTEMPTS
+                );
+            });
+
+            it('should store metadata with custom maxRetries', async () => {
+                const customAttempts = 15;
+                const configWithCustomAttempts = new ConsumerConfiguration(
+                    'test.topic',
+                    {
+                        name: 'customAttemptsProcessor',
+                        consumersCount: 1,
+                        attempts: customAttempts
+                    },
+                    jest.fn()
+                );
+
+                await consumerCreator.createConsumer(configWithCustomAttempts);
+
+                expect(mockMetadataManager.apply).toHaveBeenCalledWith(
+                    'customAttemptsProcessor',
+                    customAttempts
+                );
+            });
+
+            it('should continue consumer creation even if metadata storage fails', async () => {
+                mockMetadataManager.apply.mockResolvedValue(false);
+
+                await consumerCreator.createConsumer(testConsumerConfig);
+
+                expect(mockedChannel.consume).toHaveBeenCalled();
             });
         });
     });
