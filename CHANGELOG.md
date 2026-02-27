@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/runmq/queue/compare/v1.1.1...v1.2.0) (2026-02-27)
+
+
+### Features
+
+* **core:** abstract channel operations and switch to rabbitmq-client ([95d3418](https://github.com/runmq/queue/commit/95d34186bd4fbd6af09bf8c7cbf2aaa5a0da36ce))
+
 # [1.1.1](https://github.com/runmq/queue/compare/v1.1.0...v1.1.1) (2025-11-09)
 
 
