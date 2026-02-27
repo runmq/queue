@@ -9,3 +9,5 @@ export {
     RunMQMessageMetaContent,
     RabbitMQManagementConfig,
 } from "./types";
+
+export {RunMQLogger} from "./core/logging/RunMQLogger";
