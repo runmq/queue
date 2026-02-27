@@ -27,7 +27,7 @@ export class RunMQ {
             reconnectDelay: config.reconnectDelay ?? DEFAULTS.RECONNECT_DELAY,
             maxReconnectAttempts: config.maxReconnectAttempts ?? DEFAULTS.MAX_RECONNECT_ATTEMPTS,
         };
-        this.client = new RabbitMQClientAdapter(this.config);
+        this.client = new RabbitMQClientAdapter(this.config, this.logger);
     }
 
     /**
