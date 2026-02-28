@@ -1,3 +1,15 @@
+# [1.4.0](https://github.com/runmq/queue/compare/v1.3.0...v1.4.0) (2026-02-28)
+
+
+### Bug Fixes
+
+* RabbitMQMessage is published to DLQ instead of original payload ([39b9d92](https://github.com/runmq/queue/commit/39b9d922698b7878124b113858d390beb18d5af7))
+
+
+### Features
+
+* **dashboard:** Introducing management dashboard to manage runmq based queues! https://github.com/runmq/Dashboard ([a1dd6f3](https://github.com/runmq/queue/commit/a1dd6f3acf5e76942e568a994fd83d345e16c7c9))
+
 # [1.3.0](https://github.com/runmq/queue/compare/v1.2.0...v1.3.0) (2026-02-27)
 
 
