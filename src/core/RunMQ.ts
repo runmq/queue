@@ -1,6 +1,6 @@
-import {RunMQProcessorConfiguration, RunMQConnectionConfig, RunMQPublisher, RunMQMessageContent, AMQPChannel} from "@src/types";
+import {RunMQProcessorConfiguration, RunMQConnectionConfig, RunMQPublisher, RunMQMessageContent, AMQPChannel, AMQPClient} from "@src/types";
 import {RunMQException} from "@src/core/exceptions/RunMQException";
-import {RabbitMQClientAdapter} from "@src/core/clients/RabbitMQClientAdapter";
+import {AmqplibClientAdapter} from "@src/core/clients/AmqplibClientAdapter";
 import {Exceptions} from "@src/core/exceptions/Exceptions";
 import {RunMQUtils} from "@src/core/utils/RunMQUtils";
 import {Constants, DEFAULTS} from "@src/core/constants";
@@ -13,7 +13,7 @@ import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
 import {RabbitMQMessageProperties} from "@src/core/message/RabbitMQMessageProperties";
 
 export class RunMQ {
-    private readonly client: RabbitMQClientAdapter;
+    private readonly client: AMQPClient;
     private readonly config: RunMQConnectionConfig;
     private readonly consumer: RunMQConsumerCreator;
     private publisher: RunMQPublisher | undefined
@@ -28,7 +28,7 @@ export class RunMQ {
             reconnectDelay: config.reconnectDelay ?? DEFAULTS.RECONNECT_DELAY,
             maxReconnectAttempts: config.maxReconnectAttempts ?? DEFAULTS.MAX_RECONNECT_ATTEMPTS,
         };
-        this.client = new RabbitMQClientAdapter(this.config, this.logger);
+        this.client = new AmqplibClientAdapter(this.config, this.logger);
         this.consumer = new RunMQConsumerCreator(this.client, this.logger, this.config.management);
     }
 

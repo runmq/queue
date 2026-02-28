@@ -1,5 +1,5 @@
 import {RunMQ} from '@src/core/RunMQ';
-import {RabbitMQClientAdapter} from '@src/core/clients/RabbitMQClientAdapter';
+import {AmqplibClientAdapter} from '@src/core/clients/AmqplibClientAdapter';
 import {RunMQException} from '@src/core/exceptions/RunMQException';
 import {Exceptions} from '@src/core/exceptions/Exceptions';
 import {RunMQUtils} from '@src/core/utils/RunMQUtils';
@@ -13,7 +13,7 @@ import {MockedRunMQLogger} from "@tests/mocks/MockedRunMQLogger";
 import {RunMQPublisherCreator} from "@src/core/publisher/RunMQPublisherCreator";
 import {AMQPChannel} from "@src/types";
 
-jest.mock('@src/core/clients/RabbitMQClientAdapter');
+jest.mock('@src/core/clients/AmqplibClientAdapter');
 jest.mock('@src/core/utils/RunMQUtils');
 jest.mock('@src/core/consumer/RunMQConsumerCreator');
 jest.mock('@src/core/publisher/RunMQPublisherCreator');
@@ -23,7 +23,7 @@ describe('RunMQ Unit Tests', () => {
     const validConfig = RunMQConnectionConfigExample.valid();
 
     const setupSuccessfulClientMock = () => {
-        const mockClient = RabbitMQClientAdapter as jest.MockedClass<typeof RabbitMQClientAdapter>;
+        const mockClient = AmqplibClientAdapter as jest.MockedClass<typeof AmqplibClientAdapter>;
         mockClient.prototype.connect.mockResolvedValue({} as any);
         mockClient.prototype.getChannel.mockResolvedValue(mockChannel as AMQPChannel);
         mockClient.prototype.getDefaultChannel.mockResolvedValue(mockChannel as AMQPChannel);
@@ -31,7 +31,7 @@ describe('RunMQ Unit Tests', () => {
     };
 
     const setupFailingClientMock = (error: Error) => {
-        const mockClient = RabbitMQClientAdapter as jest.MockedClass<typeof RabbitMQClientAdapter>;
+        const mockClient = AmqplibClientAdapter as jest.MockedClass<typeof AmqplibClientAdapter>;
         mockClient.prototype.connect.mockRejectedValue(error);
         return mockClient;
     };
@@ -87,7 +87,7 @@ describe('RunMQ Unit Tests', () => {
         });
 
         it('should retry connection on failure', async () => {
-            const mockClient = RabbitMQClientAdapter as jest.MockedClass<typeof RabbitMQClientAdapter>;
+            const mockClient = AmqplibClientAdapter as jest.MockedClass<typeof AmqplibClientAdapter>;
             mockClient.prototype.connect
                 .mockRejectedValueOnce(new Error('Connection failed'))
                 .mockRejectedValueOnce(new Error('Connection failed'))
@@ -127,7 +127,7 @@ describe('RunMQ Unit Tests', () => {
             await runMQ.process('test.topic', processorConfig, processor);
 
             expect(mockConsumerCreator).toHaveBeenCalledWith(
-                expect.any(RabbitMQClientAdapter),
+                expect.any(AmqplibClientAdapter),
                 expect.any(Object),
                 undefined
             );
