@@ -25,6 +25,7 @@ Whether you’re running <b>background jobs</b>, designing an <b>event-driven ar
 - **Concurrent Consumers**: Scale either horizontally (multiple instances) or vertically (multiple consumers per queue, leveraging RabbitMQ prefetch) to maximize throughput and efficiency.
 - **RabbitMQ Durability & Acknowledgements**: Leverages RabbitMQ's persistent storage and acknowledgment model to guarantee at-least-once delivery, even across restarts and failures.
 - **Custom Logging**: Plug in your own logger or use the default console logger for full control over message visibility.
+- **Dashboard**: A web-based dashboard for real-time monitoring and management of queues, DLQs, and message processing. [Check it out!](https://github.com/runmq/Dashboard)
 
 ## Installation
 
