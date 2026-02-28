@@ -1,5 +1,6 @@
 import {RunMQConsumer, RunMQProcessorConfiguration, RunMQPublisher} from "@src/types";
 import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
+import {RunMQMessage} from "@src/core/message/RunMQMessage";
 import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
 import {DEFAULTS} from "@src/core/constants";
@@ -45,7 +46,30 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
     }
 
     private moveToFinalDeadLetter(message: RabbitMQMessage) {
-        this.DLQPublisher.publish(ConsumerCreatorUtils.getDLQTopicName(this.config.name), message)
+        const originalPayload = this.extractOriginalPayload(message);
+        const dlqMessage = new RabbitMQMessage(
+            originalPayload,
+            message.id,
+            message.correlationId,
+            message.channel,
+            message.amqpMessage,
+            message.headers
+        );
+        this.DLQPublisher.publish(ConsumerCreatorUtils.getDLQTopicName(this.config.name), dlqMessage)
+    }
+
+    private extractOriginalPayload(message: RabbitMQMessage): any {
+        if (typeof message.message === 'string') {
+            try {
+                const parsed = JSON.parse(message.message);
+                if (RunMQMessage.isValid(parsed)) {
+                    return parsed.message;
+                }
+            } catch {
+                // Not valid JSON, use as-is
+            }
+        }
+        return message.message;
     }
 
     private acknowledgeMessage(message: RabbitMQMessage) {
