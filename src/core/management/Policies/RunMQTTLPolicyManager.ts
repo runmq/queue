@@ -18,6 +18,9 @@ export class RunMQTTLPolicyManager {
     }
 
     public async initialize(): Promise<void> {
+        if (this.isManagementPluginEnabled) {
+            return;
+        }
         if (!this.managementClient) {
             this.logger.warn("Management client not configured");
             return;
