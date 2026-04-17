@@ -1,3 +1,11 @@
+## [1.4.2](https://github.com/runmq/queue/compare/v1.4.1...v1.4.2) (2026-04-17)
+
+
+### Bug Fixes
+
+* add @semantic-release/npm plugin to update package.json version on release ([1951733](https://github.com/runmq/queue/commit/19517335f6491af09bbbf3cb980fe13f7695f28a))
+* add semantic-release/npm plugin to update package.json version on release ([30028cc](https://github.com/runmq/queue/commit/30028cc9f741bea1bd59a471fdc9d310ca29cefd))
+
 ## [1.4.1](https://github.com/runmq/queue/compare/v1.4.0...v1.4.1) (2026-04-17)
 
 
