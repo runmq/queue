@@ -1,7 +1,7 @@
 {
   "name": "runmq",
   "type": "module",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "RunMQ is a high-performance message queue library for Node.js, built on top of RabbitMQ’s rock-solid messaging guarantees.",
   "keywords": [
     "queues",
@@ -78,6 +78,7 @@
       "@semantic-release/commit-analyzer",
       "@semantic-release/release-notes-generator",
       "@semantic-release/changelog",
+      "@semantic-release/npm",
       [
         "@semantic-release/github",
         {
