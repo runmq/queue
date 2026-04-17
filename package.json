@@ -31,7 +31,8 @@
     "lint:fix": "eslint --fix .",
     "test:unit": "jest tests/unit",
     "test:e2e": "jest tests/e2e",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "release": "npm build & npm publish"
   },
   "_moduleAliases": {
     "@": "dist"
