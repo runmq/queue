@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/runmq/queue/compare/v1.4.0...v1.4.1) (2026-04-17)
+
+
+### Bug Fixes
+
+* correct ESM exports path in package.json ([073ca0c](https://github.com/runmq/queue/commit/073ca0c82e6502a60a01206d0a3e4c3c5a572d23))
+
 # [1.4.0](https://github.com/runmq/queue/compare/v1.3.0...v1.4.0) (2026-02-28)
 
 
