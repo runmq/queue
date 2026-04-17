@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/runmq/queue/compare/v1.4.2...v1.5.0) (2026-04-17)
+
+
+### Features
+
+* Increasing prefetch count to 20 to decrease roundtrip ([bf16100](https://github.com/runmq/queue/commit/bf16100478e96faf257de9e561ce03a24f32ddac))
+
 ## [1.4.2](https://github.com/runmq/queue/compare/v1.4.1...v1.4.2) (2026-04-17)
 
 
