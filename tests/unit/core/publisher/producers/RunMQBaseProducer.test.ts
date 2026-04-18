@@ -85,6 +85,7 @@ describe('RunMQBaseProducer Unit Tests', () => {
                     correlationId: testMessage.correlationId,
                     messageId: testMessage.id,
                     headers: testMessage.headers,
+                    persistent: true,
                 }
             );
         });
