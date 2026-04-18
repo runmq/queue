@@ -21,6 +21,7 @@ export class RunMQBaseProducer implements RunMQPublisher {
             correlationId: message.correlationId,
             messageId: message.id,
             headers: message.headers,
+            persistent: true,
         });
     }
 }

@@ -41,6 +41,7 @@ export class RabbitMQClientAdapter implements AMQPClient {
                 retryLow: 100,
                 retryHigh: 200,
                 connectionTimeout: 5000,
+                noDelay: true,
             });
 
             // Set up event handlers before waiting for connection
