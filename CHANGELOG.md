@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/runmq/queue/compare/v1.5.0...v1.5.1) (2026-04-18)
+
+
+### Bug Fixes
+
+* improving reliability and decreasing latency disabling nagle's algorithm ([0c71f0f](https://github.com/runmq/queue/commit/0c71f0fdeb9bd542097fb41d45f532504992caa3))
+
 # [1.5.0](https://github.com/runmq/queue/compare/v1.4.2...v1.5.0) (2026-04-17)
 
 
