@@ -1,9 +1,8 @@
-import {RunMQConsumer, RunMQProcessorConfiguration, RunMQPublisher} from "@src/types";
+import {RunMQConsumer, RunMQProcessorConfiguration} from "@src/types";
 import {RabbitMQMessage} from "@src/core/message/RabbitMQMessage";
-import {RunMQMessage} from "@src/core/message/RunMQMessage";
 import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
-import {DEFAULTS} from "@src/core/constants";
+import {Constants, DEFAULTS} from "@src/core/constants";
 
 export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
     private readonly maxAttempts: number = this.config.attempts ?? DEFAULTS.PROCESSING_ATTEMPTS;
@@ -11,7 +10,6 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
     constructor(
         private readonly consumer: RunMQConsumer,
         private readonly config: RunMQProcessorConfiguration,
-        private readonly DLQPublisher: RunMQPublisher,
         private readonly logger: RunMQLogger,
     ) {
     }
@@ -45,31 +43,21 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
         );
     }
 
+    // Republish the original AMQP body verbatim so the envelope (including
+    // publishedAt) is preserved end-to-end for audit/replay.
     private moveToFinalDeadLetter(message: RabbitMQMessage) {
-        const originalPayload = this.extractOriginalPayload(message);
-        const dlqMessage = new RabbitMQMessage(
-            originalPayload,
-            message.id,
-            message.correlationId,
-            message.channel,
-            message.amqpMessage,
-            message.headers
-        );
-        this.DLQPublisher.publish(ConsumerCreatorUtils.getDLQTopicName(this.config.name), dlqMessage)
-    }
-
-    private extractOriginalPayload(message: RabbitMQMessage): any {
-        if (typeof message.message === 'string') {
-            try {
-                const parsed = JSON.parse(message.message);
-                if (RunMQMessage.isValid(parsed)) {
-                    return parsed.message;
-                }
-            } catch {
-                // Not valid JSON, use as-is
+        if (!message.amqpMessage) return;
+        message.channel.publish(
+            Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME,
+            ConsumerCreatorUtils.getDLQTopicName(this.config.name),
+            message.amqpMessage.content,
+            {
+                correlationId: message.correlationId,
+                messageId: message.id,
+                headers: message.headers,
+                persistent: true,
             }
-        }
-        return message.message;
+        );
     }
 
     private acknowledgeMessage(message: RabbitMQMessage) {

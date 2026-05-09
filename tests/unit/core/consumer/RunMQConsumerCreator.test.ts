@@ -160,6 +160,20 @@ describe('RunMQConsumerCreator Unit Tests', () => {
             );
         });
 
+        it('should use the configured prefetch value when provided', async () => {
+            const customPrefetch = 5;
+            const customProcessorConfig = {
+                ...testProcessorConfig,
+                prefetch: customPrefetch
+            };
+            const customConsumerConfig = ConsumerConfigurationExample.withProcessorConfig(customProcessorConfig);
+
+            await consumerCreator.createConsumer(customConsumerConfig);
+
+            expect(mockedChannel.prefetch).toHaveBeenCalledWith(customPrefetch);
+            expect(mockedChannel.prefetch).toHaveBeenCalledTimes(customProcessorConfig.consumersCount);
+        });
+
         describe('queue naming', () => {
             it('should use correct queue names with prefixes', async () => {
                 const customConfig = new ConsumerConfiguration(
