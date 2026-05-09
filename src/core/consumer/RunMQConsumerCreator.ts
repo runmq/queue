@@ -13,7 +13,7 @@ import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 import {DefaultDeserializer} from "@src/core/serializers/deserializer/DefaultDeserializer";
 import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
 import {RunMQPublisherCreator} from "@src/core/publisher/RunMQPublisherCreator";
-import {AMQPChannel, AMQPClient, RabbitMQManagementConfig} from "@src/types";
+import {AMQPClient, RabbitMQManagementConfig} from "@src/types";
 import {RunMQTTLPolicyManager} from "@src/core/management/Policies/RunMQTTLPolicyManager";
 import {RunMQMetadataManager} from "@src/core/management/Policies/RunMQMetadataManager";
 import {RunMQException} from "@src/core/exceptions/RunMQException";
@@ -53,7 +53,17 @@ export class RunMQConsumerCreator {
     }
 
     private async runProcessor<T>(consumerConfiguration: ConsumerConfiguration<T>): Promise<void> {
-        const consumerChannel = await this.getProcessorChannel();
+        const consumerChannel = await this.client.getChannel({
+            onClose: () => {
+                if (!this.client.isActive()) {
+                    return;
+                }
+                this.logger.warn('Consumer channel closed; attempting to re-subscribe', {
+                    processor: consumerConfiguration.processorConfig.name,
+                });
+                this.resubscribeProcessor(consumerConfiguration);
+            },
+        });
         const DLQPublisher = new RunMQPublisherCreator(this.logger).createPublisher(Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME);
 
         const prefetchCount = consumerConfiguration.processorConfig.prefetch ?? DEFAULTS.PREFETCH_COUNT;
@@ -163,7 +173,19 @@ export class RunMQConsumerCreator {
         );
     }
 
-    private async getProcessorChannel(): Promise<AMQPChannel> {
-        return await this.client.getChannel()
+    private resubscribeProcessor<T>(consumerConfiguration: ConsumerConfiguration<T>): void {
+        const delay = DEFAULTS.RECONNECT_DELAY;
+        setTimeout(() => {
+            if (!this.client.isActive()) {
+                return;
+            }
+            this.runProcessor(consumerConfiguration).catch((err) => {
+                this.logger.error('Failed to re-subscribe consumer; will retry', {
+                    processor: consumerConfiguration.processorConfig.name,
+                    error: err instanceof Error ? err.message : err,
+                });
+                this.resubscribeProcessor(consumerConfiguration);
+            });
+        }, delay);
     }
 }

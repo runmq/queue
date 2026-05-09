@@ -1,7 +1,7 @@
 import {Connection, Channel} from "rabbitmq-client";
 import {RunMQException} from "@src/core/exceptions/RunMQException";
 import {Exceptions} from "@src/core/exceptions/Exceptions";
-import {AMQPChannel, AMQPClient, RunMQConnectionConfig} from "@src/types";
+import {AMQPChannel, AMQPChannelLifecycleCallbacks, AMQPClient, RunMQConnectionConfig} from "@src/types";
 import {RabbitMQClientChannel} from "@src/core/clients/RabbitMQClientChannel";
 import {RunMQLogger} from "@src";
 import {RunMQConsoleLogger} from "@src/core/logging/RunMQConsoleLogger";
@@ -15,6 +15,7 @@ export class RabbitMQClientAdapter implements AMQPClient {
     private defaultChannel: AMQPChannel | undefined;
     private isConnected: boolean = false;
     private acquiredChannels: Channel[] = [];
+    private isShuttingDown: boolean = false;
 
     constructor(private config: RunMQConnectionConfig, private logger: RunMQLogger = new RunMQConsoleLogger()) {
     }
@@ -24,6 +25,8 @@ export class RabbitMQClientAdapter implements AMQPClient {
             if (this.connection && this.isConnected) {
                 return this.connection;
             }
+
+            this.isShuttingDown = false;
 
             // Close any existing connection that might be in a bad state
             if (this.connection) {
@@ -88,9 +91,36 @@ export class RabbitMQClientAdapter implements AMQPClient {
         }
     }
 
-    public async getChannel(): Promise<AMQPChannel> {
+    public async getChannel(callbacks?: AMQPChannelLifecycleCallbacks): Promise<AMQPChannel> {
         const connection = await this.connect();
         const rawChannel = await connection.acquire();
+        const channelId = rawChannel.id;
+
+        rawChannel.on('error', (err) => {
+            this.logger.error('RabbitMQ channel error:', {channelId, error: err});
+            try {
+                callbacks?.onError?.(err);
+            } catch (cbErr) {
+                this.logger.error('RabbitMQ channel onError callback threw:', {channelId, error: cbErr});
+            }
+        });
+
+        rawChannel.on('close', () => {
+            this.logger.warn('RabbitMQ channel closed', {channelId});
+            const idx = this.acquiredChannels.indexOf(rawChannel);
+            if (idx >= 0) {
+                this.acquiredChannels.splice(idx, 1);
+            }
+            if (this.isShuttingDown) {
+                return;
+            }
+            try {
+                callbacks?.onClose?.();
+            } catch (cbErr) {
+                this.logger.error('RabbitMQ channel onClose callback threw:', {channelId, error: cbErr});
+            }
+        });
+
         // Track the channel so we can close it on disconnect
         this.acquiredChannels.push(rawChannel);
         return new RabbitMQClientChannel(rawChannel);
@@ -108,6 +138,7 @@ export class RabbitMQClientAdapter implements AMQPClient {
         const conn = this.connection;
         const channels = this.acquiredChannels;
 
+        this.isShuttingDown = true;
         this.connection = undefined;
         this.defaultChannel = undefined;
         this.isConnected = false;
