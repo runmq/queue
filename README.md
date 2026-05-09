@@ -9,23 +9,25 @@
 </div>
 
 
-<b>RunMQ</b> is a high-performance message queue library for <b>Node.js</b>, built on top of <b>RabbitMQ</b>’s rock-solid messaging guarantees.
+**RunMQ** is a high-performance message queue library for **Node.js**, built on top of **RabbitMQ**'s rock-solid messaging guarantees.
 
-It combines RabbitMQ’s proven reliability with a modern developer experience — offering simple APIs, built-in fault tolerance, and seamless scaling for distributed systems.
+It pairs RabbitMQ's proven reliability with the kind of developer experience you actually want to work with — clean APIs, fault tolerance baked in, and scaling that just works. No hand-rolled boilerplate, no leaky abstractions.
 
-Whether you’re running <b>background jobs</b>, designing an <b>event-driven architecture</b>, or managing a <b>pub/sub event bus</b>, RunMQ provides everything you need — all in a <b>lightweight package</b> with a <b>simple DX</b>, <b>without the hassle of managing everything on your own</b>.
+Whether you're running **background jobs**, designing an **event-driven architecture**, or wiring up a **pub/sub event bus**, RunMQ has you covered — in a lightweight package, with a simple DX, and without the operational headaches you usually sign up for.
+
+> Using NestJS? Check out [`nestjs-runmq`](https://github.com/runmq/nestjs) — the official module with decorators, an injectable publisher, and full lifecycle integration.
 
 ## Features
 
-- **Reliable Message Processing with Retries**: Automatically retries failed messages with configurable delays and retry limits.
-- **Dead Letter Queue (DLQ) Support**: Failed messages are seamlessly routed to a DLQ after all retry attempts are exhausted.
-- **Pub/Sub with Atomic Delivery**: Publish a message once, and all subscribed consumers receive it atomically, without the need to publish multiple times.
-- **Isolated Queues per Processor**: Each processor gets its own dedicated queue and DLQ, ensuring full isolation and predictable behavior across services.
-- **Schema Validation**: Optional JSON Schema validation powered by AJV for safer message handling and data integrity.
-- **Concurrent Consumers**: Scale either horizontally (multiple instances) or vertically (multiple consumers per queue, leveraging RabbitMQ prefetch) to maximize throughput and efficiency.
-- **RabbitMQ Durability & Acknowledgements**: Leverages RabbitMQ's persistent storage and acknowledgment model to guarantee at-least-once delivery, even across restarts and failures.
-- **Custom Logging**: Plug in your own logger or use the default console logger for full control over message visibility.
-- **Management Dashboard**: A web-based dashboard for real-time monitoring and management of queues, DLQs, and message processing. [Check it out!](https://github.com/runmq/pulse)
+- **Reliable retries** — failed messages are retried with configurable delays and limits, so transient errors don't take you down.
+- **Dead Letter Queues (DLQ)** — once retries are exhausted, the message lands safely in a DLQ where you can inspect or replay it.
+- **Pub/Sub with atomic delivery** — publish a message once, and every subscribed consumer gets it. No fan-out logic on your side.
+- **Isolated queues per processor** — each processor has its own queue and its own DLQ, so one slow consumer can't drag the rest down.
+- **Schema validation** — optional JSON Schema validation (powered by AJV) catches bad messages before they reach your business logic.
+- **Concurrent consumers** — scale horizontally (more instances) or vertically (more consumers per queue, via RabbitMQ prefetch) — your choice.
+- **RabbitMQ durability & acks** — built on RabbitMQ's persistent storage and acknowledgment model, so you get at-least-once delivery even across restarts.
+- **Custom logging** — bring your own logger, or stick with the default. Either way, you stay in control of visibility.
+- **Real-time dashboard** — pair RunMQ with [RunMQ Pulse](https://github.com/runmq/pulse) to monitor queues, DLQs, and message flow at a glance.
 
 ## Installation
 
@@ -35,8 +37,7 @@ npm install runmq
 
 ## Quick Start
 
-### Initialize RunMQ
-The first step is to connect to RabbitMQ
+### Connect to RabbitMQ
 
 ```typescript
 const runMQ = await RunMQ.start({
@@ -47,58 +48,54 @@ const runMQ = await RunMQ.start({
         url: "http://localhost:15673",
         username: "guest",
         password: "guest"
-    };
+    }
 });
 ```
 
-#### Notes: 
-- `reconnectDelay` defines the wait time between reconnection attempts.
-- `maxReconnectAttempts` limits the number of retries when RabbitMQ is unavailable.
-- Management configuration is optional but **highly recommended** to enables dynamic TTL via RabbitMQ policies; otherwise, RunMQ uses queue-based TTL.
+A few quick notes:
+- `reconnectDelay` is the wait time between reconnection attempts.
+- `maxReconnectAttempts` caps how many times RunMQ will retry before giving up.
+- `management` is optional, but **highly recommended** — it unlocks dynamic TTL via RabbitMQ policies. Without it, RunMQ falls back to queue-based TTL (which works fine, just less flexible).
 
-### Processing side
+### Set up your processors
 
-It’s important that processors run before publishing messages, because queues are created internally when a consumer starts for the first time.
+A small but important detail: **start your processors before you publish.** Queues are created the first time a consumer subscribes, so a processor needs to be up for its queue to exist.
 
 ```typescript
 import { RunMQ } from 'runmq';
 
 // Processor 1: Email Service
 await runMQ.process('user.created', {
-    name: 'emailService',        // Unique processor name (creates an isolated queue)
+    name: 'emailService',        // Unique name → isolated queue + DLQ
     consumersCount: 2,           // Process up to 2 messages concurrently
-    attempts: 3,                 // Retry failed messages up to 3 times
-    attemptsDelay: 2000,         // Wait 2 seconds between retries
-    usePoliciesForDelay: true    // highly recommended, default is false
+    attempts: 3,                 // Retry up to 3 times before DLQ
+    attemptsDelay: 2000,         // Wait 2s between retries
+    usePoliciesForDelay: true    // Recommended (default: false)
 }, async (message) => {
     console.log('EmailService received:', message.message);
     await sendEmail(message.message);
 });
 
-// Processor 2: SMS Service
+// Processor 2: SMS Service — same topic, separate queue
 await runMQ.process('user.created', {
-    name: 'smsService',          // Unique processor name (separate queue)
-    consumersCount: 1,           // Process 1 message at a time
-    attempts: 5,                 // Retry failed messages up to 5 times
-    attemptsDelay: 1000,          // Wait 1 second between retries,
-    usePoliciesForDelay: true    // highly recommended, default is false
+    name: 'smsService',
+    consumersCount: 1,
+    attempts: 5,
+    attemptsDelay: 1000,
+    usePoliciesForDelay: true
 }, async (message) => {
     console.log('SMSService received:', message.message);
     await sendSMS(message.message);
 });
 ```
 
-#### Notes:
-- `name` is the unique identifier for each processor.
-- RunMQ supports <b>Pub/Sub</b> out-of-the-box: multiple processors can consume the same message independently.
-  - Example: When a user is created, one processor can send an email verification while another sends an SMS. 
-- Each processor can have its own configuration for:
-  - `attempts` How many the message will be retried
-  - `attemptsDelay` The delay between attempts, and if management config is provided, it can be changed anytime!
-  - `consumersCount` The concurrency level, how many messages can be processed in the same time.
-  - `usePoliciesForDelay` Enable this to let RunMQ use policies for defining delay queue TTL. Highly recommended, as it allows you to adjust delay times dynamically without re-declaring queues.
+What's happening here:
+- **`name`** uniquely identifies the processor and gives it a dedicated queue + DLQ.
+- **Pub/Sub is built in** — both processors subscribe to `user.created` and each receive every message. One sends an email, the other sends an SMS, and they don't interfere with each other.
+- Every processor gets its **own retry policy, concurrency level, and delay configuration**. Tune them per workload.
+- With `management` configured, you can change `attemptsDelay` later without re-declaring queues — RunMQ handles the rest.
 
-### Publishing side
+### Publish a message
 
 ```typescript
 runMQ.publish('user.created', {
@@ -108,46 +105,43 @@ runMQ.publish('user.created', {
 });
 ```
 
-✅ Each processor receives the message independently without needing multiple publishes.
+✅ One publish, every subscribed processor receives the message — independently and atomically.
 
 <br>
 
-## Patterns in details 
+## Patterns RunMQ fits naturally
 
-RunMQ can be used to implement various messaging patterns. Two common architectures are:
+### 1. Event-Driven Architecture (Event Bus)
 
-### 1. Event-Driven Architecture (Event Bus Pattern)
-
-The Event Bus pattern allows multiple services (or processors) to react independently to the same events. Each service has its own queue and DLQ, ensuring full isolation and autonomy.
+Multiple services react to the same event independently. Each one owns its queue and its DLQ — full isolation, full autonomy.
 
 ```
 Publisher → Topic (user.created)
-              ├→ Queue: emailService       → DLQ: emailService_dlq
-              ├→ Queue: analyticsService   → DLQ: analyticsService_dlq
+              ├→ Queue: emailService        → DLQ: emailService_dlq
+              ├→ Queue: analyticsService    → DLQ: analyticsService_dlq
               └→ Queue: notificationService → DLQ: notificationService_dlq
 ```
 
-**Key insights:**
-- Publishing a single message delivers it to all processors subscribed to the topic.
-- Each processor can have its own retry policy, consumer count, and delay configuration.
-- Easily add new services by subscribing to existing topics.
-- Dead Letter Queues allow failed messages to be captured without affecting other services.
-- This architecture ensures microservices autonomy, reliability, and scalability.
-- Schema validation ensures that only valid messages are processed; invalid messages can be routed to the DLQ automatically.
+Why teams reach for this pattern:
+- One publish reaches every interested service — no fan-out logic in your app.
+- Each service tunes its own retries, concurrency, and delays.
+- Adding a new service is just subscribing to an existing topic — no upstream changes.
+- A failing consumer doesn't drag the others down; bad messages land in *its* DLQ.
+- Schema validation can stop invalid payloads before they ever reach your handlers.
 
-### 2. Background Processing Pattern
+### 2. Background Processing
 
-RunMQ can also act as a job queue for background tasks. A worker service processes jobs from a dedicated queue with retries and DLQ support.
+A worker drains jobs from a dedicated queue, with retries and a DLQ for the ones that fail.
 
 ```
 Publisher → Topic (email.send) → Queue: emailWorker → DLQ: emailWorker_dlq
 ```
 
-**Key insights:**
-- Dead Letter Queues allow failed messages to be captured without affecting other services.
-- Schema validation ensures that only valid messages are processed; invalid messages can be routed to the DLQ automatically.
-- Multiple concurrent workers can process jobs in parallel for high throughput.
-- at anytime could be transformed into Event-Driven Architecture by adding more processors to the same topic.
+Why this works well:
+- Run multiple workers in parallel for high throughput.
+- Failures are captured in the DLQ where you can inspect or replay them.
+- Schema validation keeps malformed jobs from breaking your worker.
+- If your needs grow, this pattern transforms into an Event Bus by simply adding more processors to the same topic — no migration required.
 
 <br>
 
@@ -155,9 +149,7 @@ Publisher → Topic (email.send) → Queue: emailWorker → DLQ: emailWorker_dlq
 
 ### Schema Validation
 
-RunMQ supports JSON Schema validation to ensure message integrity, so only valid messages are passed to your processors.
-- Currently, AJV is supported for schema validation.
-- Invalid messages are sent directly to the DLQ without being sent to the processor.
+Validate messages before they hit your handler, so your business logic only ever sees well-formed data. Currently powered by [AJV](https://ajv.js.org/); invalid messages can be routed straight to the DLQ for later inspection.
 
 ```typescript
 const orderSchema = {
@@ -193,48 +185,50 @@ await runMQ.process('order.placed', {
     failureStrategy: 'dlq'  // Invalid messages go straight to DLQ
   }
 }, async (message) => {
-  // Message is guaranteed to be valid
+  // message.message is guaranteed to match the schema
   await processOrder(message.message);
 });
 ```
-**Key insights:**
-- Schema validation enforces message correctness before processing, reducing runtime errors.
-- Only messages matching the schema reach your business logic.
-- DLQ ensures that invalid messages are captured and can be inspected later.
 
-### Policies for attempts delay
+A few things to call out:
+- Validation runs *before* your handler, so runtime errors from bad payloads are kept out of your code paths.
+- Only schema-conformant messages reach your business logic — everything else is captured in the DLQ for inspection.
 
-RunMQ can leverage RabbitMQ policies to manage the delay between attempts, it's not used by default, however it's <b>highly recommended</b> to enable it. 
+### Policy-based retry delays
 
-- When `usePoliciesForDelay` is enabled in consumer config, RunMQ creates delay queues with TTL configured via RabbitMQ policies rather than hard-coding TTL in the queue itself.
-- Hard-coding the TTL requires manual queue re-declaration to change delays, which can involve deleting queues - making it cumbersome and error-prone.
-- Policies allow dynamic updates to the TTL without recreating queues — you can change attempts delay anytime, and RunMQ will take care of the rest.
+RunMQ can use RabbitMQ policies to manage the delay between attempts. It's off by default, but **highly recommended** to turn on.
 
-#### Benefits
-- Flexible and easy management of retry delays
-- Reduces operational overhead
-- Fully compatible with RunMQ's retry and DLQ mechanisms
+- With `usePoliciesForDelay: true`, the delay TTL is set via a RabbitMQ policy instead of being hard-coded into the queue.
+- Without it, changing the delay later means re-declaring (and sometimes deleting) queues — cumbersome and error-prone.
+- With policies, you can update `attemptsDelay` on the fly. RunMQ takes care of applying it.
+
+> 💡 **Pair it with [RunMQ Pulse](https://github.com/runmq/pulse).** Once policy-based delays are on, Pulse becomes your control panel: tweak retry delays **live from the dashboard**, no redeploys and no queue surgery. Production getting noisy? Bump the delay, watch the queues breathe, and dial it back when things settle — all from the UI.
+
+**Why it matters:**
+- Flexible, low-friction retry tuning — from code or from Pulse.
+- Less operational overhead during incidents (change delays without touching infra).
+- Fully compatible with the rest of RunMQ's retry and DLQ machinery.
 
 ### Queue Metadata Storage
 
-RunMQ automatically stores queue metadata (such as max retries and creation timestamp) using RabbitMQ's parameters API. This enables external tools and dashboards to discover RunMQ-managed queues and understand their configuration without direct access to the application code.
+RunMQ automatically stores queue metadata (max retries, creation timestamp, etc.) using RabbitMQ's parameters API. External tools and dashboards can read this to understand what's running — without ever touching your application code.
 
-When a processor is configured, RunMQ creates a metadata parameter that stores:
-- **Version**: Schema version for future-proof migrations.
-- **Max Retries**: The configured retry limit for the queue.
-- **Created At**: ISO 8601 timestamp when the queue was first configured.
-- **Updated At**: ISO 8601 timestamp when the configuration was last changed (if applicable).
+When a processor is configured, RunMQ stores:
+- **Version** — schema version for future-proof migrations.
+- **Max Retries** — the retry limit configured for the queue.
+- **Created At** — ISO 8601 timestamp from when the queue was first configured.
+- **Updated At** — ISO 8601 timestamp from the most recent configuration change.
 
-#### Benefits
-- **Dashboard Integration**: External monitoring tools and dashboards can query RabbitMQ's management API to retrieve queue metadata and display topology information (e.g., "10 retries with 5s delay, then to DLQ").
-- **Self-Documenting Queues**: Queue configurations are discoverable directly from RabbitMQ, without needing access to application source code.
-- **Automatic Updates**: When processor configuration changes, metadata is automatically updated while preserving the original creation timestamp.
+**Why it matters:**
+- **Dashboard-friendly** — tools can pull this from RabbitMQ's management API and surface topology info like "10 retries with 5s delay, then to DLQ" automatically.
+- **Self-documenting queues** — your queue configuration is discoverable straight from RabbitMQ, no source code required.
+- **Auto-updating** — config changes update the metadata, while preserving the original `createdAt` so you keep a clean timeline.
 
-> **Note**: This feature requires RabbitMQ Management Plugin to be enabled for external tools to query the metadata parameters and for the parameters to be set.
+> **Note:** This feature requires the RabbitMQ Management Plugin to be enabled — that's how the parameters get written and read.
 
 ### Custom Logger
 
-RunMQ uses a default console logger, but you can provide a custom logger by implementing the RunMQLogger interface:
+RunMQ ships with a default console logger, but you can plug in your own by implementing the `RunMQLogger` interface:
 
 ```typescript
 import { RunMQLogger } from 'runmq';
@@ -243,7 +237,7 @@ class CustomLogger implements RunMQLogger {
   log(message: string): void {
     // Custom info logging
   }
-  
+
   error(message: string, error?: any): void {
     // Custom error logging
   }
@@ -253,9 +247,7 @@ class CustomLogger implements RunMQLogger {
 const runMQ = await RunMQ.start(config, new CustomLogger());
 ```
 
-**Key insights:**
-- Custom loggers allow integration with centralized logging systems (e.g., Winston, Bunyan, Datadog).
-- Both info and error methods can be customized to suit your monitoring strategy.
+This is the hook you want when you're piping logs into Winston, Bunyan, Datadog, or any centralized logging stack — both `log` and `error` are yours to shape.
 
 <br>
 
@@ -272,13 +264,13 @@ const runMQ = await RunMQ.start(config, new CustomLogger());
 
 ---
 
-### Management configuration
+### Management Configuration
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `url` | `string` | - | The URL of the RabbitMQ management API. |
-| `username` | `string` | - | Username for management API authentication. |
-| `password` | `string` | - | Password for management API authentication. |
+| `url` | `string` | — | The URL of the RabbitMQ management API. |
+| `username` | `string` | — | Username for management API authentication. |
+| `password` | `string` | — | Password for management API authentication. |
 
 ---
 
@@ -291,8 +283,7 @@ const runMQ = await RunMQ.start(config, new CustomLogger());
 | `attempts` | `number` | `1` | Maximum attempts to process a message. |
 | `attemptsDelay` | `number` | `1000` | Delay in milliseconds between attempts. |
 | `messageSchema` | `MessageSchema` | — | Optional schema configuration for message validation. |
-| `usePoliciesForDelay` | `boolean` | false | Optional configuration to use Policies for attempts delay, highly recommended. |
-
+| `usePoliciesForDelay` | `boolean` | `false` | Use RabbitMQ policies for the retry delay. Highly recommended. |
 
 ---
 
@@ -300,7 +291,7 @@ const runMQ = await RunMQ.start(config, new CustomLogger());
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `type` | `'ajv'` | Type of schema used for validation (currently only AJV supported). |
+| `type` | `'ajv'` | Type of schema used for validation (currently only AJV is supported). |
 | `schema` | `any` | Schema definition for validating messages. |
 | `failureStrategy` | `'dlq'` | Strategy applied when schema validation fails (e.g., move to DLQ). |
 
