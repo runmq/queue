@@ -56,7 +56,8 @@ export class RunMQConsumerCreator {
         const consumerChannel = await this.getProcessorChannel();
         const DLQPublisher = new RunMQPublisherCreator(this.logger).createPublisher(Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME);
 
-        await consumerChannel.prefetch(DEFAULTS.PREFETCH_COUNT);
+        const prefetchCount = consumerConfiguration.processorConfig.prefetch ?? DEFAULTS.PREFETCH_COUNT;
+        await consumerChannel.prefetch(prefetchCount);
         await consumerChannel.consume(consumerConfiguration.processorConfig.name, async (msg) => {
             if (msg) {
                 const rabbitmqMessage = new RabbitMQMessage(

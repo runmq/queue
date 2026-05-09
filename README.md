@@ -67,7 +67,8 @@ import { RunMQ } from 'runmq';
 // Processor 1: Email Service
 await runMQ.process('user.created', {
     name: 'emailService',        // Unique name → isolated queue + DLQ
-    consumersCount: 2,           // Process up to 2 messages concurrently
+    consumersCount: 2,           // 2 channels; each holds its own prefetch window
+    prefetch: 20,                // Per-channel prefetch (default 20). Total in-flight = consumersCount × prefetch
     attempts: 3,                 // Retry up to 3 times before DLQ
     attemptsDelay: 2000,         // Wait 2s between retries
     usePoliciesForDelay: true    // Recommended (default: false)
@@ -279,7 +280,8 @@ This is the hook you want when you're piping logs into Winston, Bunyan, Datadog,
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `name` | `string` | — | Unique name of the processor, used to create isolated queues. |
-| `consumersCount` | `number` | — | Number of concurrent consumers for this processor. |
+| `consumersCount` | `number` | — | Number of concurrent consumers (independent AMQP channels) for this processor. Each consumer keeps its own `prefetch` window, so total in-flight = `consumersCount × prefetch`. |
+| `prefetch` | `number` | `20` | Per-consumer prefetch count. This is **per channel**, not per processor — total unacked messages held by the processor is `consumersCount × prefetch`. Lower it if memory footprint or crash redelivery surface matters. |
 | `attempts` | `number` | `1` | Maximum attempts to process a message. |
 | `attemptsDelay` | `number` | `1000` | Delay in milliseconds between attempts. |
 | `messageSchema` | `MessageSchema` | — | Optional schema configuration for message validation. |
