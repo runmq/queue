@@ -268,6 +268,63 @@ describe("AjvSchemaValidator", () => {
         });
     });
 
+    describe("compile cache", () => {
+        it("should compile each schema only once across many validate() calls", () => {
+            const schema: JSONSchemaType<TestData> = {
+                type: "object",
+                properties: {
+                    name: { type: "string" },
+                    age: { type: "number" },
+                    email: { type: "string", nullable: true }
+                },
+                required: ["name", "age"]
+            };
+
+            // Spy on the underlying ajv.compile to count invocations.
+            const compileSpy = jest.spyOn((validator as any).ajv, "compile");
+
+            for (let i = 0; i < 100; i++) {
+                validator.validate(schema, { name: "x", age: i });
+            }
+
+            // First call compiles, the remaining 99 must hit the cache.
+            expect(compileSpy).toHaveBeenCalledTimes(1);
+            compileSpy.mockRestore();
+        });
+
+        it("should compile a different schema separately (per-schema cache)", () => {
+            const schemaA: JSONSchemaType<TestData> = {
+                type: "object",
+                properties: {
+                    name: { type: "string" },
+                    age: { type: "number" },
+                    email: { type: "string", nullable: true }
+                },
+                required: ["name", "age"]
+            };
+            const schemaB: JSONSchemaType<TestData> = {
+                type: "object",
+                properties: {
+                    name: { type: "string" },
+                    age: { type: "integer" },
+                    email: { type: "string", nullable: true }
+                },
+                required: ["name", "age"]
+            };
+
+            const compileSpy = jest.spyOn((validator as any).ajv, "compile");
+
+            validator.validate(schemaA, { name: "x", age: 1 });
+            validator.validate(schemaB, { name: "y", age: 2 });
+            validator.validate(schemaA, { name: "z", age: 3 });
+            validator.validate(schemaB, { name: "w", age: 4 });
+
+            // Each unique schema reference compiles once. Total = 2.
+            expect(compileSpy).toHaveBeenCalledTimes(2);
+            compileSpy.mockRestore();
+        });
+    });
+
     describe("getErrors", () => {
         it("should return null when no validation has been performed", () => {
             const errors = validator.getError();
