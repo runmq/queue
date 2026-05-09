@@ -58,16 +58,17 @@ export class RunMQConsumerCreator {
 
         await consumerChannel.prefetch(DEFAULTS.PREFETCH_COUNT);
         await consumerChannel.consume(consumerConfiguration.processorConfig.name, async (msg) => {
-            if (msg) {
-                const rabbitmqMessage = new RabbitMQMessage(
-                    msg.content.toString(),
-                    msg.properties.messageId,
-                    msg.properties.correlationId,
-                    consumerChannel,
-                    msg,
-                    msg.properties.headers,
-                )
-                return new RunMQExceptionLoggerProcessor(
+            if (!msg) return;
+            const rabbitmqMessage = new RabbitMQMessage(
+                msg.content.toString(),
+                msg.properties.messageId,
+                msg.properties.correlationId,
+                consumerChannel,
+                msg,
+                msg.properties.headers,
+            )
+            try {
+                await new RunMQExceptionLoggerProcessor(
                     new RunMQSucceededMessageAcknowledgerProcessor(
                         new RunMQFailedMessageRejecterProcessor(
                             new RunMQRetriesCheckerProcessor(
@@ -82,9 +83,21 @@ export class RunMQConsumerCreator {
                                 consumerConfiguration.processorConfig,
                                 DLQPublisher,
                                 this.logger
-                            )
-                        )
+                            ),
+                            this.logger
+                        ),
+                        this.logger
                     ), this.logger).consume(rabbitmqMessage)
+            } catch (e) {
+                // Last-resort guard: nothing above should throw, but if it does
+                // we must not let the rejection propagate into amqplib's
+                // consume callback (would become an unhandled rejection and
+                // can crash the worker on Node 15+).
+                this.logger.error('Unhandled error in consumer chain', {
+                    correlationId: rabbitmqMessage.correlationId,
+                    cause: e instanceof Error ? e.message : String(e),
+                    stack: e instanceof Error ? e.stack : undefined,
+                });
             }
         });
     }
