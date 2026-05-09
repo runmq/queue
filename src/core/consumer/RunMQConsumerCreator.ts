@@ -81,6 +81,7 @@ export class RunMQConsumerCreator {
                                     this.logger
                                 ),
                                 consumerConfiguration.processorConfig,
+                                DLQPublisher,
                                 this.logger
                             )
                         )
