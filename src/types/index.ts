@@ -179,10 +179,15 @@ export interface AMQPChannel {
     close(): Promise<void>;
 }
 
+export interface AMQPChannelLifecycleCallbacks {
+    onError?: (err: any) => void;
+    onClose?: () => void;
+}
+
 export interface AMQPClient {
     connect(): Promise<any>;
 
-    getChannel(): Promise<AMQPChannel>;
+    getChannel(callbacks?: AMQPChannelLifecycleCallbacks): Promise<AMQPChannel>;
 
     getDefaultChannel(): Promise<AMQPChannel>;
 
