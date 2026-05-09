@@ -1,6 +1,14 @@
+import * as http from "node:http";
+import * as https from "node:https";
 import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 import {RabbitMQManagementConfig} from "@src";
 import {RabbitMQOperatorPolicy} from "@src/types";
+
+interface ManagementResponse {
+    status: number;
+    ok: boolean;
+    body: string;
+}
 
 export class RabbitMQManagementClient {
     constructor(
@@ -13,27 +21,65 @@ export class RabbitMQManagementClient {
         return `Basic ${credentials}`;
     }
 
+    private request(
+        urlString: string,
+        method: string,
+        body?: unknown
+    ): Promise<ManagementResponse> {
+        const url = new URL(urlString);
+        const lib = url.protocol === 'https:' ? https : http;
+        const payload = body !== undefined ? JSON.stringify(body) : undefined;
+
+        const headers: Record<string, string> = {
+            'Authorization': this.getAuthHeader()
+        };
+        if (payload !== undefined) {
+            headers['Content-Type'] = 'application/json';
+            headers['Content-Length'] = Buffer.byteLength(payload).toString();
+        }
+
+        return new Promise((resolve, reject) => {
+            const req = lib.request(
+                {
+                    protocol: url.protocol,
+                    hostname: url.hostname,
+                    port: url.port || (url.protocol === 'https:' ? 443 : 80),
+                    path: `${url.pathname}${url.search}`,
+                    method,
+                    headers
+                },
+                (res) => {
+                    const chunks: Buffer[] = [];
+                    res.on('data', (chunk: Buffer) => chunks.push(chunk));
+                    res.on('end', () => {
+                        const status = res.statusCode ?? 0;
+                        resolve({
+                            status,
+                            ok: status >= 200 && status < 300,
+                            body: Buffer.concat(chunks).toString('utf8')
+                        });
+                    });
+                    res.on('error', reject);
+                }
+            );
+            req.on('error', reject);
+            if (payload !== undefined) req.write(payload);
+            req.end();
+        });
+    }
+
     public async createOrUpdateOperatorPolicy(vhost: string, policy: RabbitMQOperatorPolicy): Promise<boolean> {
         try {
             const url = `${this.config.url}/api/operator-policies/${vhost}/${encodeURIComponent(policy.name)}`;
-
-            const response = await fetch(url, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': this.getAuthHeader()
-                },
-                body: JSON.stringify({
-                    pattern: policy.pattern,
-                    definition: policy.definition,
-                    priority: policy.priority || 0,
-                    "apply-to": policy["apply-to"]
-                })
+            const response = await this.request(url, 'PUT', {
+                pattern: policy.pattern,
+                definition: policy.definition,
+                priority: policy.priority || 0,
+                "apply-to": policy["apply-to"]
             });
 
             if (!response.ok) {
-                const error = await response.text();
-                this.logger.error(`Failed to create operator policy: ${response.status} - ${error}`);
+                this.logger.error(`Failed to create operator policy: ${response.status} - ${response.body}`);
                 return false;
             }
 
@@ -48,24 +94,17 @@ export class RabbitMQManagementClient {
     public async getOperatorPolicy(vhost: string, policyName: string): Promise<RabbitMQOperatorPolicy | null> {
         try {
             const url = `${this.config.url}/api/operator-policies/${vhost}/${encodeURIComponent(policyName)}`;
-
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Authorization': this.getAuthHeader()
-                }
-            });
+            const response = await this.request(url, 'GET');
 
             if (!response.ok) {
                 if (response.status === 404) {
                     return null;
                 }
-                const error = await response.text();
-                this.logger.error(`Failed to get operator policy: ${response.status} - ${error}`);
+                this.logger.error(`Failed to get operator policy: ${response.status} - ${response.body}`);
                 return null;
             }
 
-            return await response.json();
+            return JSON.parse(response.body);
         } catch (error) {
             this.logger.error(`Error getting operator policy: ${error}`);
             return null;
@@ -75,17 +114,10 @@ export class RabbitMQManagementClient {
     public async deleteOperatorPolicy(vhost: string, policyName: string): Promise<boolean> {
         try {
             const url = `${this.config.url}/api/operator-policies/${vhost}/${encodeURIComponent(policyName)}`;
-
-            const response = await fetch(url, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': this.getAuthHeader()
-                }
-            });
+            const response = await this.request(url, 'DELETE');
 
             if (!response.ok && response.status !== 404) {
-                const error = await response.text();
-                this.logger.error(`Failed to delete operator policy: ${response.status} - ${error}`);
+                this.logger.error(`Failed to delete operator policy: ${response.status} - ${response.body}`);
                 return false;
             }
 
@@ -100,14 +132,7 @@ export class RabbitMQManagementClient {
     public async checkManagementPluginEnabled(): Promise<boolean> {
         try {
             const url = `${this.config.url}/api/overview`;
-
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Authorization': this.getAuthHeader()
-                }
-            });
-
+            const response = await this.request(url, 'GET');
             return response.ok;
         } catch (error) {
             this.logger.warn(`Management plugin not accessible: ${error}`);
@@ -128,19 +153,10 @@ export class RabbitMQManagementClient {
     ): Promise<boolean> {
         try {
             const url = `${this.config.url}/api/global-parameters/${encodeURIComponent(name)}`;
-
-            const response = await fetch(url, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': this.getAuthHeader()
-                },
-                body: JSON.stringify({value})
-            });
+            const response = await this.request(url, 'PUT', {value});
 
             if (!response.ok) {
-                const error = await response.text();
-                this.logger.error(`Failed to set parameter ${name}: ${response.status} - ${error}`);
+                this.logger.error(`Failed to set parameter ${name}: ${response.status} - ${response.body}`);
                 return false;
             }
 
@@ -162,24 +178,17 @@ export class RabbitMQManagementClient {
     ): Promise<T | null> {
         try {
             const url = `${this.config.url}/api/global-parameters/${encodeURIComponent(name)}`;
-
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Authorization': this.getAuthHeader()
-                }
-            });
+            const response = await this.request(url, 'GET');
 
             if (!response.ok) {
                 if (response.status === 404) {
                     return null;
                 }
-                const error = await response.text();
-                this.logger.error(`Failed to get parameter ${name}: ${response.status} - ${error}`);
+                this.logger.error(`Failed to get parameter ${name}: ${response.status} - ${response.body}`);
                 return null;
             }
 
-            const data = await response.json();
+            const data = JSON.parse(response.body);
             return data.value as T;
         } catch (error) {
             this.logger.error(`Error getting parameter: ${error}`);
@@ -197,17 +206,10 @@ export class RabbitMQManagementClient {
     ): Promise<boolean> {
         try {
             const url = `${this.config.url}/api/global-parameters/${encodeURIComponent(name)}`;
-
-            const response = await fetch(url, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': this.getAuthHeader()
-                }
-            });
+            const response = await this.request(url, 'DELETE');
 
             if (!response.ok && response.status !== 404) {
-                const error = await response.text();
-                this.logger.error(`Failed to delete parameter ${name}: ${response.status} - ${error}`);
+                this.logger.error(`Failed to delete parameter ${name}: ${response.status} - ${response.body}`);
                 return false;
             }
 

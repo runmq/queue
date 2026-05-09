@@ -71,6 +71,9 @@
     "ajv": "8.18.0",
     "rabbitmq-client": "^5.0.0"
   },
+  "engines": {
+    "node": ">=16"
+  },
   "release": {
     "branches": [
       "main"
