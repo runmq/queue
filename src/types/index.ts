@@ -226,9 +226,27 @@ export interface RunMQProcessorConfiguration {
      */
     name: string;
     /**
-     * The number of concurrent consumers to run for this processor.
+     * The number of concurrent consumers (independent AMQP channels) to run
+     * for this processor.
+     *
+     * Each consumer holds its own channel with its own `prefetch` window, so
+     * the maximum number of unacknowledged in-flight messages for the
+     * processor is `consumersCount * prefetch` — not `prefetch` alone.
+     * For example, `consumersCount: 10` with the default `prefetch: 20`
+     * allows up to 200 messages to be held unacknowledged at once.
+     *
+     * Tune both values together to control memory footprint and the size of
+     * the redelivery surface on a crash.
      */
     consumersCount: number;
+    /**
+     * The per-channel prefetch count applied to each consumer's channel.
+     * Defaults to 20.
+     *
+     * NOTE: this is per-consumer, not per-processor. Total in-flight messages
+     * for the processor is `consumersCount * prefetch`.
+     */
+    prefetch?: number;
     /**
      * The maximum number attempts processing a message, default is 1 attempt.
      */
