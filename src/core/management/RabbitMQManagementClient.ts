@@ -10,6 +10,8 @@ interface ManagementResponse {
     body: string;
 }
 
+const REQUEST_TIMEOUT_MS = 10_000;
+
 export class RabbitMQManagementClient {
     constructor(
         private config: RabbitMQManagementConfig,
@@ -46,7 +48,8 @@ export class RabbitMQManagementClient {
                     port: url.port || (url.protocol === 'https:' ? 443 : 80),
                     path: `${url.pathname}${url.search}`,
                     method,
-                    headers
+                    headers,
+                    timeout: REQUEST_TIMEOUT_MS
                 },
                 (res) => {
                     const chunks: Buffer[] = [];
@@ -62,6 +65,9 @@ export class RabbitMQManagementClient {
                     res.on('error', reject);
                 }
             );
+            req.on('timeout', () => {
+                req.destroy(new Error(`Request timed out after ${REQUEST_TIMEOUT_MS}ms`));
+            });
             req.on('error', reject);
             if (payload !== undefined) req.write(payload);
             req.end();
