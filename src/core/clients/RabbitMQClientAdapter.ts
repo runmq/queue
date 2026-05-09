@@ -128,7 +128,13 @@ export class RabbitMQClientAdapter implements AMQPClient {
 
     public async getDefaultChannel(): Promise<AMQPChannel> {
         if (!this.defaultChannel) {
-            this.defaultChannel = await this.getChannel();
+            this.defaultChannel = await this.getChannel({
+                onClose: () => {
+                    // Drop the cached reference so the next getDefaultChannel()
+                    // re-acquires a live channel — the previous one is dead.
+                    this.defaultChannel = undefined;
+                },
+            });
         }
         return this.defaultChannel;
     }
