@@ -1,4 +1,3 @@
-import {RunMQUtils} from "@src/core/utils/RunMQUtils";
 import {RabbitMQMessageProperties} from "@src/core/message/RabbitMQMessageProperties";
 import {AMQPMessage} from "@src/core/message/AmqpMessage";
 import {AMQPChannel} from "@src/types";
@@ -6,8 +5,8 @@ import {AMQPChannel} from "@src/types";
 export class RabbitMQMessage {
     constructor(
         readonly message: any,
-        readonly id: string = RunMQUtils.generateUUID(),
-        readonly correlationId: string = RunMQUtils.generateUUID(),
+        readonly id: string,
+        readonly correlationId: string,
         readonly channel: AMQPChannel,
         readonly amqpMessage: AMQPMessage = null,
         readonly headers: Record<string, any> = {}) {
