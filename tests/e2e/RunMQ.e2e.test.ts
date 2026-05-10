@@ -100,30 +100,35 @@ describe('RunMQ E2E Tests', () => {
 
     describe('processing', () => {
         it('Should end up in DLQ when message is not meeting the schema validation', async () => {
+            // simpleNoSchema's default messageSchema has failureStrategy: 'dlq',
+            // so per issue #23 a schema-validation failure must short-circuit
+            // straight to the DLQ — no retries, no handler invocation.
             const configuration = RunMQProcessorConfigurationExample.simpleNoSchema()
             const testingConnection = new RabbitMQClientAdapter(validConfig);
             const channel = await testingConnection.getChannel();
             await ChannelTestHelpers.deleteQueue(channel, configuration.name);
 
             const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
-            await runMQ.process<TestingMessage>("ad.played", configuration,
+            let handlerCalls = 0;
+            await runMQ.process<TestingMessage>("runmq.e2e.ad.played", configuration,
                 (): Promise<void> => {
+                    handlerCalls++;
                     return Promise.resolve();
                 }
             )
 
-            channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'ad.played', MessageTestUtils.buffer(MessageExample.person()))
+            channel.publish(Constants.ROUTER_EXCHANGE_NAME, 'runmq.e2e.ad.played', MessageTestUtils.buffer(MessageExample.person()))
             await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getDLQTopicName(configuration.name), 1)
             await ChannelTestHelpers.assertQueueMessageCount(channel, configuration.name, 0)
             await ChannelTestHelpers.assertQueueMessageCount(channel, ConsumerCreatorUtils.getRetryDelayTopicName(configuration.name), 0)
 
-            await LoggerTestHelpers.assertLoggedWithCount(MockedRunMQLogger.error, 'Message processing failed', configuration.attempts as number)
-            await LoggerTestHelpers.assertLoggedWithCountAndParameters(MockedRunMQLogger.error, 'Message reached maximum attempts. Moving to dead-letter queue.', {
-                    attempts: configuration.attempts,
-                    max: configuration.attempts,
-                },
-                1
-            )
+            // Direct-to-DLQ path: the user handler is never reached and the
+            // retry pipeline is never engaged, so neither the per-attempt
+            // failure log nor the max-retries log should appear.
+            expect(handlerCalls).toBe(0);
+            await LoggerTestHelpers.assertLoggedWithCount(MockedRunMQLogger.warn, 'Schema validation failed — routing message to DLQ.', 1)
+            await LoggerTestHelpers.assertLoggedWithCount(MockedRunMQLogger.error, 'Message processing failed', 0)
+            await LoggerTestHelpers.assertLoggedWithCount(MockedRunMQLogger.error, 'Message reached maximum attempts. Moving to dead-letter queue.', 0)
             await runMQ.disconnect();
             await testingConnection.disconnect();
         })
