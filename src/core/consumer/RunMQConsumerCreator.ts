@@ -18,6 +18,7 @@ import {RunMQTTLPolicyManager} from "@src/core/management/Policies/RunMQTTLPolic
 import {RunMQMetadataManager} from "@src/core/management/Policies/RunMQMetadataManager";
 import {RunMQException} from "@src/core/exceptions/RunMQException";
 import {Exceptions} from "@src/core/exceptions/Exceptions";
+import {RunMQUtils} from "@src/core/utils/RunMQUtils";
 
 export class RunMQConsumerCreator {
     private ttlPolicyManager: RunMQTTLPolicyManager;
@@ -72,8 +73,11 @@ export class RunMQConsumerCreator {
             if (!msg) return;
             const rabbitmqMessage = new RabbitMQMessage(
                 msg.content.toString(),
-                msg.properties.messageId,
-                msg.properties.correlationId,
+                // Synthesize ids when an external (non-RunMQ) publisher did
+                // not set the AMQP messageId/correlationId — keeps log tracing
+                // consistent for cross-tenant queues.
+                msg.properties.messageId ?? RunMQUtils.generateUUID(),
+                msg.properties.correlationId ?? RunMQUtils.generateUUID(),
                 consumerChannel,
                 msg,
                 msg.properties.headers,
