@@ -150,8 +150,20 @@ export interface AMQPChannel {
 
     /**
      * Publishes a message to an exchange.
+     *
+     * If `confirmSelect()` was called on this channel, the returned promise
+     * resolves only after the broker acknowledges the message; if the broker
+     * rejects, the promise rejects. Otherwise it resolves once the message is
+     * flushed to the TCP socket.
      */
-    publish(exchange: string, routingKey: string, content: Buffer, options?: AMQPPublishOptions): boolean;
+    publish(exchange: string, routingKey: string, content: Buffer, options?: AMQPPublishOptions): Promise<void>;
+
+    /**
+     * Enables publisher confirms on this channel. After this is called every
+     * `publish()` waits for broker acknowledgement before resolving.
+     * https://www.rabbitmq.com/confirms.html#publisher-confirms
+     */
+    confirmSelect(): Promise<void>;
 
     /**
      * Starts consuming messages from a queue.
@@ -221,6 +233,21 @@ export interface RunMQConnectionConfig {
         password: string;
     };
     /**
+     * Controls publisher confirms on the user-publish path. When enabled
+     * (default), `runMQ.publish()` resolves only after RabbitMQ acknowledges
+     * each message, and rejects on broker error (e.g. mandatory routing
+     * failure, alarm state). Set to `false` to opt out and fall back to
+     * fire-and-forget — publish resolves once the message is written to the
+     * TCP socket, with no delivery guarantee.
+     *
+     * Trade-off: confirms add a broker round-trip per publish (typically a
+     * few hundred microseconds). They're the only way to detect silent
+     * publish failures, so we default to safety. DLQ publishes from the
+     * consumer chain are *always* confirmed regardless of this setting —
+     * the message-loss risk there is not negotiable.
+     */
+    usePublisherConfirms?: boolean;
+    /*
      * If true, RunMQ includes the full message payload in info/error log
      * lines that mention a message (publish success, per-attempt failure,
      * max-retries-reached). Off by default — capturing megabyte-sized
@@ -361,5 +388,5 @@ export interface RunMQConsumer {
 
 
 export interface RunMQPublisher {
-    publish: (topic: string, message: RabbitMQMessage) => void;
+    publish: (topic: string, message: RabbitMQMessage) => Promise<void>;
 }

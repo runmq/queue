@@ -106,8 +106,8 @@ export class RabbitMQClientChannel implements AMQPChannel {
         });
     }
 
-    publish(exchange: string, routingKey: string, content: Buffer, options?: AMQPPublishOptions): boolean {
-        this.channel.basicPublish({
+    async publish(exchange: string, routingKey: string, content: Buffer, options?: AMQPPublishOptions): Promise<void> {
+        await this.channel.basicPublish({
             exchange,
             routingKey,
             correlationId: options?.correlationId,
@@ -124,7 +124,10 @@ export class RabbitMQClientChannel implements AMQPChannel {
             userId: options?.userId,
             appId: options?.appId,
         }, content);
-        return true;
+    }
+
+    async confirmSelect(): Promise<void> {
+        await this.channel.confirmSelect();
     }
 
     async consume(

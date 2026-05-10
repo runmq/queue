@@ -99,7 +99,7 @@ What's happening here:
 ### Publish a message
 
 ```typescript
-runMQ.publish('user.created', {
+await runMQ.publish('user.created', {
     userId: '123',
     email: 'user@example.com',
     name: 'John Doe'
@@ -107,6 +107,8 @@ runMQ.publish('user.created', {
 ```
 
 ✅ One publish, every subscribed processor receives the message — independently and atomically.
+
+✅ **Confirmed delivery by default.** `runMQ.publish()` returns a promise that resolves only after RabbitMQ has accepted the message; if the broker rejects it (alarm state, mandatory routing failure, etc.), the promise rejects so your code can handle it. Set `usePublisherConfirms: false` in the connection config to opt out and fall back to fire-and-forget publishing if per-publish round-trip latency matters more to you than detecting silent drops.
 
 <br>
 

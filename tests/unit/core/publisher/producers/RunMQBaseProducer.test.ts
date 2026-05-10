@@ -28,11 +28,11 @@ describe('RunMQBaseProducer Unit Tests', () => {
     });
 
     describe('publish', () => {
-        it('should create RunMQMessage with generated ID and current timestamp', () => {
+        it('should create RunMQMessage with generated ID and current timestamp', async () => {
             const testMessage = MockedRabbitMQMessage;
             const testTopic = 'test.topic';
 
-            producer.publish(testTopic, testMessage);
+            await producer.publish(testTopic, testMessage);
 
             expect(RunMQMessage).toHaveBeenCalledWith(
                 testMessage.message,
@@ -44,11 +44,11 @@ describe('RunMQBaseProducer Unit Tests', () => {
             );
         });
 
-        it('should serialize the RunMQMessage', () => {
+        it('should serialize the RunMQMessage', async () => {
             const testMessage = MockedRabbitMQMessage;
             const testTopic = 'test.topic';
 
-            producer.publish(testTopic, testMessage);
+            await producer.publish(testTopic, testMessage);
 
             expect(mockedSerializer.serialize).toHaveBeenCalledTimes(1);
             expect(mockedSerializer.serialize).toHaveBeenCalledWith(
@@ -63,7 +63,7 @@ describe('RunMQBaseProducer Unit Tests', () => {
             );
         });
 
-        it('should publish to the correct exchange and routing key', () => {
+        it('should publish to the correct exchange and routing key', async () => {
             jest.useFakeTimers().setSystemTime(new Date('2025-10-10T00:00:00Z'));
             const message = RunMQMessageExample.person();
             const testMessage = mockedRabbitMQMessageWithChannelAndMessage(
@@ -75,7 +75,7 @@ describe('RunMQBaseProducer Unit Tests', () => {
             const testTopic = 'test.topic';
             const serializedMessage = JSON.stringify(message);
 
-            producer.publish(testTopic, testMessage);
+            await producer.publish(testTopic, testMessage);
 
             expect(mockedChannel.publish).toHaveBeenCalledWith(
                 Constants.ROUTER_EXCHANGE_NAME,

@@ -19,7 +19,6 @@ import {RunMQTTLPolicyManager} from "@src/core/management/Policies/RunMQTTLPolic
 import {RunMQMetadataManager} from "@src/core/management/Policies/RunMQMetadataManager";
 import {RunMQException} from "@src/core/exceptions/RunMQException";
 import {Exceptions} from "@src/core/exceptions/Exceptions";
-import {RunMQUtils} from "@src/core/utils/RunMQUtils";
 
 export class RunMQConsumerCreator {
     private ttlPolicyManager: RunMQTTLPolicyManager;
@@ -69,17 +68,19 @@ export class RunMQConsumerCreator {
         });
         const DLQPublisher = new RunMQPublisherCreator(this.logger).createPublisher(Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME);
 
+        // Always enable publisher confirms on the consumer channel: DLQ
+        // publishes flow through this channel and we cannot tolerate silent
+        // drops there (issue #19).
+        await consumerChannel.confirmSelect();
+
         const prefetchCount = consumerConfiguration.processorConfig.prefetch ?? DEFAULTS.PREFETCH_COUNT;
         await consumerChannel.prefetch(prefetchCount);
         await consumerChannel.consume(consumerConfiguration.processorConfig.name, async (msg) => {
             if (!msg) return;
             const rabbitmqMessage = new RabbitMQMessage(
                 msg.content.toString(),
-                // Synthesize ids when an external (non-RunMQ) publisher did
-                // not set the AMQP messageId/correlationId — keeps log tracing
-                // consistent for cross-tenant queues.
-                msg.properties.messageId ?? RunMQUtils.generateUUID(),
-                msg.properties.correlationId ?? RunMQUtils.generateUUID(),
+                msg.properties.messageId,
+                msg.properties.correlationId,
                 consumerChannel,
                 msg,
                 msg.properties.headers,
