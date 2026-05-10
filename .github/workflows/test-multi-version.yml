@@ -12,6 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        node-version: ['16', '18', '20', '22', '24']
         rabbitmq-version:
           - "3.9-management"
           - "3.10-management"
@@ -20,16 +21,16 @@ jobs:
           - "3.13-management"
           - "4.0-management"
           - "4.1-management"
-    
-    name: Test RabbitMQ ${{ matrix.rabbitmq-version }}
-    
+
+    name: Node ${{ matrix.node-version }} · RabbitMQ ${{ matrix.rabbitmq-version }}
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
         run: npm install
