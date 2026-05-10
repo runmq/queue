@@ -8,6 +8,9 @@
     </a>
 </div>
 
+<p align="center">
+  <strong>📖 Full documentation: <a href="https://runmq.github.io/docs">runmq.github.io/docs</a></strong>
+</p>
 
 **RunMQ** is a high-performance message queue library for **Node.js**, built on top of **RabbitMQ**'s rock-solid messaging guarantees.
 
