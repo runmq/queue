@@ -7,7 +7,7 @@ import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
 describe('RabbitMQManagementClient', () => {
     let client: RabbitMQManagementClient;
     let logger: RunMQConsoleLogger;
-    let requestSpy: jest.SpyInstance;
+    let fetchSpy: jest.SpyInstance;
     const MANAGEMENT_URL = "http://localhost:15673/api/operator-policies/%2F/"
 
     beforeEach(() => {
@@ -17,10 +17,8 @@ describe('RabbitMQManagementClient', () => {
             logger
         );
 
-        // Spy on the private node:http/https request helper. The boundary is
-        // intentionally kept private to the class — tests reach through the
-        // TS-private modifier (which has no runtime effect) to mock it.
-        requestSpy = jest.spyOn(client as unknown as { request: () => unknown }, 'request');
+        global.fetch = jest.fn();
+        fetchSpy = jest.spyOn(global, 'fetch');
     });
 
     afterEach(() => {
@@ -29,27 +27,41 @@ describe('RabbitMQManagementClient', () => {
 
     describe('createOperatorPolicy', () => {
         it('should successfully create an operator policy', async () => {
-            requestSpy.mockResolvedValueOnce({ok: true, status: 201, body: ''});
+            fetchSpy.mockResolvedValueOnce({
+                ok: true,
+                status: 201,
+                text: async () => ''
+            } as Response);
 
             const result = await client.createOrUpdateOperatorPolicy('%2F', RabbitMQMessageTTLPolicyExample.validPolicy('test-queue', 5000));
 
             expect(result).toBe(true);
-            expect(requestSpy).toHaveBeenCalledWith(
+            expect(fetchSpy).toHaveBeenCalledWith(
                 MANAGEMENT_URL + ConsumerCreatorUtils.getMessageTTLPolicyName('test-queue'),
-                'PUT',
-                {
-                    pattern: 'test-queue',
-                    definition: {
-                        'message-ttl': 5000
-                    },
-                    priority: 1000,
-                    'apply-to': 'queues'
-                }
+                expect.objectContaining({
+                    method: 'PUT',
+                    headers: expect.objectContaining({
+                        'Content-Type': 'application/json',
+                        'Authorization': expect.stringContaining('Basic')
+                    }),
+                    body: JSON.stringify({
+                        pattern: 'test-queue',
+                        definition: {
+                            'message-ttl': 5000
+                        },
+                        priority: 1000,
+                        'apply-to': 'queues'
+                    })
+                })
             );
         });
 
         it('should handle failed policy creation', async () => {
-            requestSpy.mockResolvedValueOnce({ok: false, status: 400, body: 'Bad Request'});
+            fetchSpy.mockResolvedValueOnce({
+                ok: false,
+                status: 400,
+                text: async () => 'Bad Request'
+            } as Response);
 
             const result = await client.createOrUpdateOperatorPolicy('%2F', RabbitMQMessageTTLPolicyExample.validPolicy());
 
@@ -59,19 +71,30 @@ describe('RabbitMQManagementClient', () => {
 
     describe('checkManagementPluginEnabled', () => {
         it('should return true when management plugin is accessible', async () => {
-            requestSpy.mockResolvedValueOnce({ok: true, status: 200, body: ''});
+            fetchSpy.mockResolvedValueOnce({
+                ok: true,
+                status: 200
+            } as Response);
 
             const result = await client.checkManagementPluginEnabled();
 
             expect(result).toBe(true);
-            expect(requestSpy).toHaveBeenCalledWith(
+            expect(fetchSpy).toHaveBeenCalledWith(
                 'http://localhost:15673/api/overview',
-                'GET'
+                expect.objectContaining({
+                    method: 'GET',
+                    headers: expect.objectContaining({
+                        'Authorization': expect.stringContaining('Basic')
+                    })
+                })
             );
         });
 
         it('should return false when management plugin is not accessible', async () => {
-            requestSpy.mockResolvedValueOnce({ok: false, status: 404, body: ''});
+            fetchSpy.mockResolvedValueOnce({
+                ok: false,
+                status: 404
+            } as Response);
 
             const result = await client.checkManagementPluginEnabled();
 
@@ -79,7 +102,7 @@ describe('RabbitMQManagementClient', () => {
         });
 
         it('should return false on network error', async () => {
-            requestSpy.mockRejectedValueOnce(new Error('Network error'));
+            fetchSpy.mockRejectedValueOnce(new Error('Network error'));
 
             const result = await client.checkManagementPluginEnabled();
 
@@ -89,19 +112,32 @@ describe('RabbitMQManagementClient', () => {
 
     describe('deleteOperatorPolicy', () => {
         it('should successfully delete an operator policy', async () => {
-            requestSpy.mockResolvedValueOnce({ok: true, status: 204, body: ''});
+            fetchSpy.mockResolvedValueOnce({
+                ok: true,
+                status: 204,
+                text: async () => ''
+            } as Response);
 
             const result = await client.deleteOperatorPolicy('%2F', 'test-queue');
 
             expect(result).toBe(true);
-            expect(requestSpy).toHaveBeenCalledWith(
+            expect(fetchSpy).toHaveBeenCalledWith(
                 MANAGEMENT_URL + 'test-queue',
-                'DELETE'
+                expect.objectContaining({
+                    method: 'DELETE',
+                    headers: expect.objectContaining({
+                        'Authorization': expect.stringContaining('Basic')
+                    })
+                })
             );
         });
 
         it('should handle 404 as success', async () => {
-            requestSpy.mockResolvedValueOnce({ok: false, status: 404, body: 'Not Found'});
+            fetchSpy.mockResolvedValueOnce({
+                ok: false,
+                status: 404,
+                text: async () => 'Not Found'
+            } as Response);
 
             const result = await client.deleteOperatorPolicy('%2F', 'test-policy');
 
