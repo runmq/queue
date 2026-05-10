@@ -30,7 +30,8 @@ describe('RunMQRetriesCheckerProcessor', () => {
         await processor.consume(message)
 
         expect(MockedRunMQLogger.error).toHaveBeenCalledWith(`Message reached maximum attempts. Moving to dead-letter queue.`, {
-            message: message.message,
+            correlationId: message.correlationId,
+            messageId: message.id,
             attempts: 3,
             max: 3,
         });
@@ -69,7 +70,8 @@ describe('RunMQRetriesCheckerProcessor - acknowledgeMessage', () => {
         await expect(processor.consume(message)).resolves.toBe(false);
 
         expect(MockedRunMQLogger.error).toHaveBeenCalledWith(`Message reached maximum attempts. Moving to dead-letter queue.`, {
-            message: message.message,
+            correlationId: message.correlationId,
+            messageId: message.id,
             attempts: 3,
             max: 3,
         });

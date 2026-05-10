@@ -129,7 +129,8 @@ describe('RunMQ Unit Tests', () => {
             expect(mockConsumerCreator).toHaveBeenCalledWith(
                 expect.any(RabbitMQClientAdapter),
                 expect.any(Object),
-                undefined
+                undefined,
+                undefined,
             );
             expect(mockConsumerCreator.prototype.createConsumer).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -159,6 +160,41 @@ describe('RunMQ Unit Tests', () => {
             runMQ.publish('test.topic', MessageExample.person());
 
             expect(mockPublisher.publish).toHaveBeenCalledWith('test.topic', expect.any(Object));
+        });
+
+        it('should not include the payload in the publish info log by default', async () => {
+            setupSuccessfulClientMock();
+            setupPublisherMock();
+            (RunMQUtils.generateUUID as jest.Mock).mockReturnValue('msg-uuid');
+
+            const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
+            runMQ.publish('test.topic', MessageExample.person(), 'corr-1');
+
+            expect(MockedRunMQLogger.info).toHaveBeenCalledWith('Published message', {
+                topic: 'test.topic',
+                correlationId: 'corr-1',
+                messageId: 'msg-uuid',
+            });
+        });
+
+        it('should include the payload in the publish info log when logFullMessagePayload is true', async () => {
+            setupSuccessfulClientMock();
+            setupPublisherMock();
+            (RunMQUtils.generateUUID as jest.Mock).mockReturnValue('msg-uuid');
+
+            const runMQ = await RunMQ.start(
+                {...validConfig, logFullMessagePayload: true},
+                MockedRunMQLogger,
+            );
+            const payload = MessageExample.person();
+            runMQ.publish('test.topic', payload, 'corr-1');
+
+            expect(MockedRunMQLogger.info).toHaveBeenCalledWith('Published message', {
+                topic: 'test.topic',
+                correlationId: 'corr-1',
+                messageId: 'msg-uuid',
+                message: payload,
+            });
         });
     });
 
