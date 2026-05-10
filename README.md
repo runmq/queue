@@ -263,6 +263,7 @@ This is the hook you want when you're piping logs into Winston, Bunyan, Datadog,
 | `url` | `string` | — | The URL of the RabbitMQ server. |
 | `reconnectDelay` | `number` | `5000` | Delay in milliseconds before attempting to reconnect after a disconnection. |
 | `maxReconnectAttempts` | `number` | `5` | Maximum number of reconnection attempts. |
+| `usePublisherConfirms` | `boolean` | `true` | Enable RabbitMQ publisher confirms on the user publish channel. When `true`, `publish()` resolves only after the broker acks the message and rejects on broker error. Set to `false` for fire-and-forget publishing. _Available in 2.x._ |
 | `management` | `ManagementConfiguration` | — | RabbitMQ management API configuration. |
 
 ---
