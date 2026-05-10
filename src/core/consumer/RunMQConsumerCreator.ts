@@ -27,7 +27,8 @@ export class RunMQConsumerCreator {
     constructor(
         private client: AMQPClient,
         private logger: RunMQLogger,
-        managementConfig?: RabbitMQManagementConfig
+        managementConfig?: RabbitMQManagementConfig,
+        private logFullMessagePayload: boolean = false,
     ) {
         this.ttlPolicyManager = new RunMQTTLPolicyManager(logger, managementConfig);
         this.metadataManager = new RunMQMetadataManager(logger, managementConfig);
@@ -100,10 +101,12 @@ export class RunMQConsumerCreator {
                                         DLQPublisher,
                                         this.logger
                                     ),
-                                    this.logger
+                                    this.logger,
+                                    this.logFullMessagePayload,
                                 ),
                                 consumerConfiguration.processorConfig,
-                                this.logger
+                                this.logger,
+                                this.logFullMessagePayload,
                             ),
                             this.logger
                         ),

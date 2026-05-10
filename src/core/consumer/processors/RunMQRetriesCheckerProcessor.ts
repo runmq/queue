@@ -11,6 +11,7 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
         private readonly consumer: RunMQConsumer,
         private readonly config: RunMQProcessorConfiguration,
         private readonly logger: RunMQLogger,
+        private readonly logFullMessagePayload: boolean = false,
     ) {
     }
 
@@ -52,9 +53,11 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
     private logMaxRetriesReached(message: RabbitMQMessage) {
         this.logger.error(
             `Message reached maximum attempts. Moving to dead-letter queue.`, {
-                message: message.message,
+                correlationId: message.correlationId,
+                messageId: message.id,
                 attempts: this.getRejectionCount(message),
                 max: this.maxAttempts,
+                ...(this.logFullMessagePayload ? {message: message.message} : {}),
             }
         );
     }
