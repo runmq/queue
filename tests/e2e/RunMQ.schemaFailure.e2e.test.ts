@@ -39,7 +39,7 @@ describe('RunMQ Schema Failure Strategy E2E', () => {
 
         const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
         let handlerCalls = 0;
-        await runMQ.process('user.created', configuration, () => {
+        await runMQ.process('schemaFailure.user.created', configuration, () => {
             handlerCalls++;
             return Promise.resolve();
         });
@@ -52,7 +52,7 @@ describe('RunMQ Schema Failure Strategy E2E', () => {
         ));
         channel.publish(
             Constants.ROUTER_EXCHANGE_NAME,
-            'user.created',
+            'schemaFailure.user.created',
             Buffer.from(invalidPayload),
         );
 
@@ -89,7 +89,7 @@ describe('RunMQ Schema Failure Strategy E2E', () => {
 
         const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
         let handlerCalls = 0;
-        await runMQ.process('user.created', configuration, () => {
+        await runMQ.process('schemaFailure.user.created', configuration, () => {
             handlerCalls++;
             throw new Error('handler intentionally fails');
         });
@@ -97,7 +97,7 @@ describe('RunMQ Schema Failure Strategy E2E', () => {
         // Publish a SCHEMA-VALID message — the handler will be the thing failing.
         channel.publish(
             Constants.ROUTER_EXCHANGE_NAME,
-            'user.created',
+            'schemaFailure.user.created',
             MessageTestUtils.buffer(RunMQMessageExample.person()),
         );
 
