@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: ${{ github.event_name == 'pull_request' && fromJSON('["22"]') || fromJSON('["16", "18", "20", "22", "24"]') }}
+        node-version: ${{ github.event_name == 'pull_request' && fromJSON('["22"]') || fromJSON('["18", "20", "22", "24"]') }}
         rabbitmq-version:
           - "3.9-management"
           - "3.10-management"

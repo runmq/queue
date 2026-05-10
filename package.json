@@ -47,6 +47,9 @@
     "url": "https://github.com/runmq/queue/issues"
   },
   "homepage": "https://github.com/runmq/queue#readme",
+  "engines": {
+    "node": ">=18"
+  },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
     "@faker-js/faker": "^9.9.0",
