@@ -20,6 +20,7 @@ export class RunMQ {
     private readonly logger: RunMQLogger
     private retryAttempts: number = 0;
     private defaultChannel: AMQPChannel | undefined;
+    private publishChannel: AMQPChannel | undefined;
 
     private constructor(config: RunMQConnectionConfig, logger: RunMQLogger) {
         this.logger = logger;
@@ -70,14 +71,14 @@ export class RunMQ {
      * @param correlationId (Optional) A unique identifier for correlating messages; if not provided, a new UUID will be generated
      */
     public async publish(topic: string, message: Record<string, any>, correlationId: string = RunMQUtils.generateUUID()): Promise<void> {
-        if (!this.publisher || !this.defaultChannel) {
+        if (!this.publisher || !this.publishChannel) {
             throw new RunMQException(Exceptions.NOT_INITIALIZED, {});
         }
         RunMQUtils.assertRecord(message);
         await this.publisher.publish(topic,
             RabbitMQMessage.from(
                 message,
-                this.defaultChannel,
+                this.publishChannel,
                 new RabbitMQMessageProperties(RunMQUtils.generateUUID(), correlationId)
             )
         );
@@ -144,8 +145,11 @@ export class RunMQ {
         this.defaultChannel = await this.client.getDefaultChannel();
         await this.defaultChannel.assertExchange(Constants.ROUTER_EXCHANGE_NAME, 'direct', {durable: true});
         await this.defaultChannel.assertExchange(Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME, 'direct', {durable: true});
-        if (this.config.usePublisherConfirms) {
-            await this.defaultChannel.confirmSelect();
+        // Use a dedicated channel for publishes so a setup-time channel close
+        // (e.g. a precondition_failed on assertQueue) cannot break the publish path.
+        this.publishChannel = await this.client.getChannel();
+        if (this.config.usePublisherConfirms !== false) {
+            await this.publishChannel.confirmSelect();
         }
         this.publisher = new RunMQPublisherCreator(this.logger).createPublisher();
     }

@@ -191,10 +191,15 @@ export interface AMQPChannel {
     close(): Promise<void>;
 }
 
+export interface AMQPChannelLifecycleCallbacks {
+    onError?: (err: any) => void;
+    onClose?: () => void;
+}
+
 export interface AMQPClient {
     connect(): Promise<any>;
 
-    getChannel(): Promise<AMQPChannel>;
+    getChannel(callbacks?: AMQPChannelLifecycleCallbacks): Promise<AMQPChannel>;
 
     getDefaultChannel(): Promise<AMQPChannel>;
 
@@ -228,16 +233,18 @@ export interface RunMQConnectionConfig {
         password: string;
     };
     /**
-     * If true, `runMQ.publish()` waits for RabbitMQ to acknowledge each
-     * message before resolving, and rejects on broker error (e.g. mandatory
-     * routing failure, alarm state). Default false — publish resolves once
-     * the message is written to the TCP socket (fire-and-forget).
+     * Controls publisher confirms on the user-publish path. When enabled
+     * (default), `runMQ.publish()` resolves only after RabbitMQ acknowledges
+     * each message, and rejects on broker error (e.g. mandatory routing
+     * failure, alarm state). Set to `false` to opt out and fall back to
+     * fire-and-forget — publish resolves once the message is written to the
+     * TCP socket, with no delivery guarantee.
      *
      * Trade-off: confirms add a broker round-trip per publish (typically a
-     * few hundred microseconds), but they're the only way to detect silent
-     * publish failures. DLQ publishes from the consumer chain are *always*
-     * confirmed regardless of this setting — the message-loss risk there is
-     * not negotiable.
+     * few hundred microseconds). They're the only way to detect silent
+     * publish failures, so we default to safety. DLQ publishes from the
+     * consumer chain are *always* confirmed regardless of this setting —
+     * the message-loss risk there is not negotiable.
      */
     usePublisherConfirms?: boolean;
 }
@@ -251,9 +258,27 @@ export interface RunMQProcessorConfiguration {
      */
     name: string;
     /**
-     * The number of concurrent consumers to run for this processor.
+     * The number of concurrent consumers (independent AMQP channels) to run
+     * for this processor.
+     *
+     * Each consumer holds its own channel with its own `prefetch` window, so
+     * the maximum number of unacknowledged in-flight messages for the
+     * processor is `consumersCount * prefetch` — not `prefetch` alone.
+     * For example, `consumersCount: 10` with the default `prefetch: 20`
+     * allows up to 200 messages to be held unacknowledged at once.
+     *
+     * Tune both values together to control memory footprint and the size of
+     * the redelivery surface on a crash.
      */
     consumersCount: number;
+    /**
+     * The per-channel prefetch count applied to each consumer's channel.
+     * Defaults to 20.
+     *
+     * NOTE: this is per-consumer, not per-processor. Total in-flight messages
+     * for the processor is `consumersCount * prefetch`.
+     */
+    prefetch?: number;
     /**
      * The maximum number attempts processing a message, default is 1 attempt.
      */
