@@ -53,16 +53,20 @@ describe('RunMQRetriesCheckerProcessor - acknowledgeMessage', () => {
     const consumer = new MockedThrowableRabbitMQConsumer()
     const processorConfig = RunMQProcessorConfigurationExample.withAttempts(3)
 
-    it("should throw error if acknowledge message failed", async () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    it("should warn and not throw when ack fails after publishing to DLQ", async () => {
         const message = mockedRabbitMQMessageWithChannelAndDeathCount(
             new MockedAMQPChannelWithAcknowledgeFailure(),
             2
         )
         const processor = new RunMQRetriesCheckerProcessor(consumer, processorConfig, MockedRunMQLogger)
 
-        await expect(processor.consume(message)).rejects.toMatchObject({
-            message: "A message acknowledge failed after publishing to final dead letter",
-        });
+        // Must NOT reject — a channel-closed ack failure should not propagate.
+        // The broker will redeliver unacked messages on channel close.
+        await expect(processor.consume(message)).resolves.toBe(false);
 
         expect(MockedRunMQLogger.error).toHaveBeenCalledWith(`Message reached maximum attempts. Moving to dead-letter queue.`, {
             message: message.message,
@@ -79,6 +83,10 @@ describe('RunMQRetriesCheckerProcessor - acknowledgeMessage', () => {
                 headers: message.headers,
                 persistent: true,
             })
+        )
+        expect(MockedRunMQLogger.warn).toHaveBeenCalledWith(
+            expect.stringContaining('Failed to ack message after publishing to final dead letter'),
+            expect.objectContaining({correlationId: message.correlationId}),
         );
     });
 });
