@@ -124,7 +124,7 @@ describe('RunMQ Consumer Channel Resubscription E2E', () => {
 
         // Force-close only the connection(s) holding consumers for our queue.
         // Scoping by queue avoids killing unrelated parallel-test connections.
-        const {closed, consumerTags} = await closeConnectionsForQueue(configuration.name, 5000);
+        const {closed, consumerTags} = await closeConnectionsForQueue(configuration.name, 20000);
         expect(closed.size).toBeGreaterThan(0);
 
         // Wait until a NEW consumer (different tag from the one we killed) is
