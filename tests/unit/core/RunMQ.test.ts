@@ -167,7 +167,7 @@ describe('RunMQ Unit Tests', () => {
             (RunMQUtils.generateUUID as jest.Mock).mockReturnValue('msg-uuid');
 
             const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
-            runMQ.publish('test.topic', MessageExample.person(), 'corr-1');
+            await runMQ.publish('test.topic', MessageExample.person(), 'corr-1');
 
             expect(MockedRunMQLogger.info).toHaveBeenCalledWith('Published message', {
                 topic: 'test.topic',
@@ -186,7 +186,7 @@ describe('RunMQ Unit Tests', () => {
                 MockedRunMQLogger,
             );
             const payload = MessageExample.person();
-            runMQ.publish('test.topic', payload, 'corr-1');
+            await runMQ.publish('test.topic', payload, 'corr-1');
 
             expect(MockedRunMQLogger.info).toHaveBeenCalledWith('Published message', {
                 topic: 'test.topic',
