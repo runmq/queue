@@ -220,6 +220,22 @@ export interface RunMQConnectionConfig {
         username: string;
         password: string;
     };
+    /**
+     * If true, RunMQ includes the full message payload in info/error log
+     * lines that mention a message (publish success, per-attempt failure,
+     * max-retries-reached). Off by default — capturing megabyte-sized
+     * payloads on every log call allocates GB/s of refs that structured-log
+     * transports JSON.stringify even when the level filters the line out.
+     *
+     * With this flag off, every relevant log line still carries the
+     * `correlationId` and `messageId`. Use those to look up the body in
+     * the broker (retry-delay queue) or in the DLQ (where the original
+     * envelope is preserved), or to join with publisher-side logs.
+     *
+     * Turn it on in development or when chasing a specific bug; leave it
+     * off in production.
+     */
+    logFullMessagePayload?: boolean;
 }
 
 export type SchemaFailureStrategy = 'dlq'

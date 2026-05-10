@@ -30,7 +30,7 @@ export class RunMQ {
             maxReconnectAttempts: config.maxReconnectAttempts ?? DEFAULTS.MAX_RECONNECT_ATTEMPTS,
         };
         this.client = new RabbitMQClientAdapter(this.config, this.logger);
-        this.consumer = new RunMQConsumerCreator(this.client, this.logger, this.config.management);
+        this.consumer = new RunMQConsumerCreator(this.client, this.logger, this.config.management, this.config.logFullMessagePayload);
     }
 
     /**
@@ -67,17 +67,24 @@ export class RunMQ {
             throw new RunMQException(Exceptions.NOT_INITIALIZED, {});
         }
         RunMQUtils.assertRecord(message);
+        const messageId = RunMQUtils.generateUUID();
         this.publisher.publish(topic,
             RabbitMQMessage.from(
                 message,
                 this.publishChannel,
-                new RabbitMQMessageProperties(RunMQUtils.generateUUID(), correlationId)
+                new RabbitMQMessageProperties(messageId, correlationId)
             )
         );
+        // Avoid capturing the payload by default — for megabyte-sized
+        // bodies at high throughput the structured-log JSON.stringify
+        // dominates allocations even when the level filters the line out.
+        // correlationId/messageId let you join with publisher- or
+        // consumer-side logs and look up the body in the broker or DLQ.
         this.logger.info(`Published message`, {
             topic,
             correlationId,
-            message,
+            messageId,
+            ...(this.config.logFullMessagePayload ? {message} : {}),
         });
     }
 
