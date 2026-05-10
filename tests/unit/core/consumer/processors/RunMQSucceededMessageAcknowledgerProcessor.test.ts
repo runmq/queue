@@ -7,15 +7,18 @@ import {
     MockedSuccessfulRabbitMQConsumer,
     MockedThrowableRabbitMQConsumer
 } from "@tests/mocks/MockedRunMQConsumer";
+import {MockedRunMQLogger} from "@tests/mocks/MockedRunMQLogger";
 
 describe('RunMQSucceededMessageAcknowledgerProcessor', () => {
     const message = {
-        ack: jest.fn(),
-        nack: jest.fn()
+        correlationId: 'corr-id',
+        ack: jest.fn().mockReturnValue(true),
+        nack: jest.fn().mockReturnValue(true),
     } as unknown as jest.Mocked<RabbitMQMessage>;
 
     beforeEach(() => {
         jest.clearAllMocks();
+        (message.ack as jest.Mock).mockReturnValue(true);
     })
 
     it("should ack message when the processor succeeds", async () => {
@@ -39,5 +42,17 @@ describe('RunMQSucceededMessageAcknowledgerProcessor', () => {
         const processor = new RunMQSucceededMessageAcknowledgerProcessor(throwableConsumer)
 
         await expect(processor.consume(message)).rejects.toThrow(Error);
+    })
+
+    it("should warn and not throw when ack fails (channel closed)", async () => {
+        (message.ack as jest.Mock).mockReturnValue(false);
+        const successfulConsumer = new MockedSuccessfulRabbitMQConsumer()
+        const processor = new RunMQSucceededMessageAcknowledgerProcessor(successfulConsumer, MockedRunMQLogger)
+
+        await expect(processor.consume(message)).resolves.toBe(true);
+        expect(MockedRunMQLogger.warn).toHaveBeenCalledWith(
+            expect.stringContaining('Failed to ack message'),
+            expect.objectContaining({correlationId: 'corr-id'}),
+        );
     })
 })

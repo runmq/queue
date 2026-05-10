@@ -160,6 +160,20 @@ describe('RunMQConsumerCreator Unit Tests', () => {
             );
         });
 
+        it('should use the configured prefetch value when provided', async () => {
+            const customPrefetch = 5;
+            const customProcessorConfig = {
+                ...testProcessorConfig,
+                prefetch: customPrefetch
+            };
+            const customConsumerConfig = ConsumerConfigurationExample.withProcessorConfig(customProcessorConfig);
+
+            await consumerCreator.createConsumer(customConsumerConfig);
+
+            expect(mockedChannel.prefetch).toHaveBeenCalledWith(customPrefetch);
+            expect(mockedChannel.prefetch).toHaveBeenCalledTimes(customProcessorConfig.consumersCount);
+        });
+
         describe('queue naming', () => {
             it('should use correct queue names with prefixes', async () => {
                 const customConfig = new ConsumerConfiguration(
@@ -248,6 +262,56 @@ describe('RunMQConsumerCreator Unit Tests', () => {
                 await consumerCreator.createConsumer(testConsumerConfig);
 
                 expect(mockedChannel.consume).toHaveBeenCalled();
+            });
+        });
+
+        describe('consumer channel close handling', () => {
+            beforeEach(() => {
+                jest.useFakeTimers();
+            });
+
+            afterEach(() => {
+                jest.useRealTimers();
+            });
+
+            it('should pass an onClose callback to getChannel for consumer channels', async () => {
+                await consumerCreator.createConsumer(testConsumerConfig);
+
+                expect(mockedClient.getChannel).toHaveBeenCalledWith(
+                    expect.objectContaining({onClose: expect.any(Function)})
+                );
+            });
+
+            it('should re-subscribe a consumer when its channel closes while client is active', async () => {
+                mockedClient.isActive.mockReturnValue(true);
+
+                await consumerCreator.createConsumer(testConsumerConfig);
+
+                const initialCalls = mockedChannel.consume.mock.calls.length;
+                const lastCall = mockedClient.getChannel.mock.calls.at(-1) as [{ onClose?: () => void }];
+                const onClose = lastCall[0]?.onClose;
+                expect(onClose).toBeDefined();
+
+                onClose!();
+                await jest.advanceTimersByTimeAsync(DEFAULTS.RECONNECT_DELAY);
+
+                expect(mockedChannel.consume.mock.calls.length).toBeGreaterThan(initialCalls);
+            });
+
+            it('should not re-subscribe a consumer when client is no longer active', async () => {
+                mockedClient.isActive.mockReturnValue(true);
+
+                await consumerCreator.createConsumer(testConsumerConfig);
+
+                const callsBeforeClose = mockedChannel.consume.mock.calls.length;
+                const lastCall = mockedClient.getChannel.mock.calls.at(-1) as [{ onClose?: () => void }];
+                const onClose = lastCall[0]?.onClose;
+
+                mockedClient.isActive.mockReturnValue(false);
+                onClose!();
+                await jest.advanceTimersByTimeAsync(DEFAULTS.RECONNECT_DELAY);
+
+                expect(mockedChannel.consume.mock.calls.length).toBe(callsBeforeClose);
             });
         });
     });

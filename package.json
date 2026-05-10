@@ -32,7 +32,7 @@
     "test:unit": "jest tests/unit",
     "test:e2e": "jest tests/e2e",
     "test:coverage": "jest --coverage",
-    "release": "npm build & npm publish"
+    "release": "npm run build && npm publish"
   },
   "_moduleAliases": {
     "@": "dist"
@@ -70,6 +70,9 @@
   "dependencies": {
     "ajv": "8.18.0",
     "rabbitmq-client": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=16"
   },
   "release": {
     "branches": [

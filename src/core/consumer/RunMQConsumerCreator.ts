@@ -14,11 +14,12 @@ import {RunMQLogger} from "@src/core/logging/RunMQLogger";
 import {DefaultDeserializer} from "@src/core/serializers/deserializer/DefaultDeserializer";
 import {ConsumerCreatorUtils} from "@src/core/consumer/ConsumerCreatorUtils";
 import {RunMQPublisherCreator} from "@src/core/publisher/RunMQPublisherCreator";
-import {AMQPChannel, AMQPClient, RabbitMQManagementConfig} from "@src/types";
+import {AMQPClient, RabbitMQManagementConfig} from "@src/types";
 import {RunMQTTLPolicyManager} from "@src/core/management/Policies/RunMQTTLPolicyManager";
 import {RunMQMetadataManager} from "@src/core/management/Policies/RunMQMetadataManager";
 import {RunMQException} from "@src/core/exceptions/RunMQException";
 import {Exceptions} from "@src/core/exceptions/Exceptions";
+import {RunMQUtils} from "@src/core/utils/RunMQUtils";
 
 export class RunMQConsumerCreator {
     private ttlPolicyManager: RunMQTTLPolicyManager;
@@ -54,21 +55,36 @@ export class RunMQConsumerCreator {
     }
 
     private async runProcessor<T>(consumerConfiguration: ConsumerConfiguration<T>): Promise<void> {
-        const consumerChannel = await this.getProcessorChannel();
+        const consumerChannel = await this.client.getChannel({
+            onClose: () => {
+                if (!this.client.isActive()) {
+                    return;
+                }
+                this.logger.warn('Consumer channel closed; attempting to re-subscribe', {
+                    processor: consumerConfiguration.processorConfig.name,
+                });
+                this.resubscribeProcessor(consumerConfiguration);
+            },
+        });
         const DLQPublisher = new RunMQPublisherCreator(this.logger).createPublisher(Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME);
 
-        await consumerChannel.prefetch(DEFAULTS.PREFETCH_COUNT);
+        const prefetchCount = consumerConfiguration.processorConfig.prefetch ?? DEFAULTS.PREFETCH_COUNT;
+        await consumerChannel.prefetch(prefetchCount);
         await consumerChannel.consume(consumerConfiguration.processorConfig.name, async (msg) => {
-            if (msg) {
-                const rabbitmqMessage = new RabbitMQMessage(
-                    msg.content.toString(),
-                    msg.properties.messageId,
-                    msg.properties.correlationId,
-                    consumerChannel,
-                    msg,
-                    msg.properties.headers,
-                )
-                return new RunMQExceptionLoggerProcessor(
+            if (!msg) return;
+            const rabbitmqMessage = new RabbitMQMessage(
+                msg.content.toString(),
+                // Synthesize ids when an external (non-RunMQ) publisher did
+                // not set the AMQP messageId/correlationId — keeps log tracing
+                // consistent for cross-tenant queues.
+                msg.properties.messageId ?? RunMQUtils.generateUUID(),
+                msg.properties.correlationId ?? RunMQUtils.generateUUID(),
+                consumerChannel,
+                msg,
+                msg.properties.headers,
+            )
+            try {
+                await new RunMQExceptionLoggerProcessor(
                     new RunMQSucceededMessageAcknowledgerProcessor(
                         new RunMQFailedMessageRejecterProcessor(
                             new RunMQRetriesCheckerProcessor(
@@ -86,11 +102,22 @@ export class RunMQConsumerCreator {
                                     this.logger
                                 ),
                                 consumerConfiguration.processorConfig,
-                                DLQPublisher,
                                 this.logger
-                            )
-                        )
+                            ),
+                            this.logger
+                        ),
+                        this.logger
                     ), this.logger).consume(rabbitmqMessage)
+            } catch (e) {
+                // Last-resort guard: nothing above should throw, but if it does
+                // we must not let the rejection propagate into amqplib's
+                // consume callback (would become an unhandled rejection and
+                // can crash the worker on Node 15+).
+                this.logger.error('Unhandled error in consumer chain', {
+                    correlationId: rabbitmqMessage.correlationId,
+                    cause: e instanceof Error ? e.message : String(e),
+                    stack: e instanceof Error ? e.stack : undefined,
+                });
             }
         });
     }
@@ -169,7 +196,19 @@ export class RunMQConsumerCreator {
         );
     }
 
-    private async getProcessorChannel(): Promise<AMQPChannel> {
-        return await this.client.getChannel()
+    private resubscribeProcessor<T>(consumerConfiguration: ConsumerConfiguration<T>): void {
+        const delay = DEFAULTS.RECONNECT_DELAY;
+        setTimeout(() => {
+            if (!this.client.isActive()) {
+                return;
+            }
+            this.runProcessor(consumerConfiguration).catch((err) => {
+                this.logger.error('Failed to re-subscribe consumer; will retry', {
+                    processor: consumerConfiguration.processorConfig.name,
+                    error: err instanceof Error ? err.message : err,
+                });
+                this.resubscribeProcessor(consumerConfiguration);
+            });
+        }, delay);
     }
 }

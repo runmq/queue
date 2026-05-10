@@ -4,6 +4,7 @@ node_modules
 dist
 
 .vscode
+.claude
 package-lock.json
 testing.ts
 coverage
