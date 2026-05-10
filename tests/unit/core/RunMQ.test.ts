@@ -38,7 +38,7 @@ describe('RunMQ Unit Tests', () => {
 
     const setupPublisherMock = () => {
         const mockPublisherCreator = RunMQPublisherCreator as jest.MockedClass<typeof RunMQPublisherCreator>;
-        const mockPublisher = {publish: jest.fn()};
+        const mockPublisher = {publish: jest.fn().mockResolvedValue(undefined)};
         mockPublisherCreator.prototype.createPublisher.mockReturnValue(mockPublisher as any);
         return {mockPublisherCreator, mockPublisher};
     };
@@ -142,13 +142,12 @@ describe('RunMQ Unit Tests', () => {
     });
 
     describe('producer', () => {
-        it('should throw error if message is not a valid record', async () => {
+        it('should reject if message is not a valid record', async () => {
             setupSuccessfulClientMock();
             const runMQ = await RunMQ.start(validConfig);
 
-            expect(() => {
-                runMQ.publish('test.topic', "invalid message" as any);
-            }).toThrow(RunMQException);
+            await expect(runMQ.publish('test.topic', "invalid message" as any))
+                .rejects.toThrow(RunMQException);
         });
 
         it('should publish message correctly if valid record', async () => {
@@ -156,7 +155,7 @@ describe('RunMQ Unit Tests', () => {
             const {mockPublisher} = setupPublisherMock();
 
             const runMQ = await RunMQ.start(validConfig);
-            runMQ.publish('test.topic', MessageExample.person());
+            await runMQ.publish('test.topic', MessageExample.person());
 
             expect(mockPublisher.publish).toHaveBeenCalledWith('test.topic', expect.any(Object));
         });

@@ -8,7 +8,7 @@ export class RunMQBaseProducer implements RunMQPublisher {
     constructor(private serializer: Serializer, private exchange = Constants.ROUTER_EXCHANGE_NAME) {
     }
 
-    publish(topic: string, message: RabbitMQMessage): void {
+    async publish(topic: string, message: RabbitMQMessage): Promise<void> {
         const runMQMessage = new RunMQMessage(
             message.message,
             new RunMQMessageMeta(
@@ -17,7 +17,7 @@ export class RunMQBaseProducer implements RunMQPublisher {
                 message.correlationId,
             ));
         const serialized = this.serializer.serialize(runMQMessage);
-        message.channel.publish(this.exchange, topic, Buffer.from(serialized), {
+        await message.channel.publish(this.exchange, topic, Buffer.from(serialized), {
             correlationId: message.correlationId,
             messageId: message.id,
             headers: message.headers,

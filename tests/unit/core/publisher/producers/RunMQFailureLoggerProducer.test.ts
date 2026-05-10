@@ -10,136 +10,83 @@ describe('RunMQFailureLoggerProducer Unit Tests', () => {
         MockedRunMQLogger
     );
 
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockProducer.publish.mockResolvedValue(undefined);
+    });
+
     describe('publish', () => {
-        it('should delegate to wrapped producer when publish succeeds', () => {
+        it('should delegate to wrapped producer when publish succeeds', async () => {
             const testTopic = 'test.topic';
             const testMessage = MockedRabbitMQMessage;
 
-            failureLoggerProducer.publish(testTopic, testMessage);
+            await failureLoggerProducer.publish(testTopic, testMessage);
 
             expect(mockProducer.publish).toHaveBeenCalledWith(testTopic, testMessage);
             expect(MockedRunMQLogger.error).not.toHaveBeenCalled();
         });
 
-        it('should log error and rethrow when publish fails', () => {
+        it('should log error and rethrow when publish rejects', async () => {
             const testTopic = 'test.topic';
             const testMessage = MockedRabbitMQMessage;
 
             const publishError = new Error('Publish failed');
+            mockProducer.publish.mockRejectedValueOnce(publishError);
 
-            mockProducer.publish.mockImplementation(() => {
-                throw publishError;
-            });
-
-            expect(() => {
-                failureLoggerProducer.publish(testTopic, testMessage);
-            }).toThrow('Publish failed');
+            await expect(failureLoggerProducer.publish(testTopic, testMessage))
+                .rejects.toThrow('Publish failed');
 
             expect(mockProducer.publish).toHaveBeenCalledWith(testTopic, testMessage);
             expect(MockedRunMQLogger.error).toHaveBeenCalledWith(
                 'Message publishing failed',
-                {
-                    message: testMessage,
+                expect.objectContaining({
+                    topic: testTopic,
+                    correlationId: testMessage.correlationId,
                     error: 'Publish failed',
                     stack: publishError.stack,
-                }
+                })
             );
         });
 
-        it('should handle non-Error exceptions', () => {
+        it('should handle non-Error rejections', async () => {
             const testTopic = 'test.topic';
             const testMessage = MockedRabbitMQMessage;
 
-            const publishError = 'String error';
+            mockProducer.publish.mockRejectedValueOnce('String error');
 
-            mockProducer.publish.mockImplementation(() => {
-                throw publishError;
-            });
-
-            expect(() => {
-                failureLoggerProducer.publish(testTopic, testMessage);
-            }).toThrow('String error');
+            await expect(failureLoggerProducer.publish(testTopic, testMessage))
+                .rejects.toBe('String error');
 
             expect(MockedRunMQLogger.error).toHaveBeenCalledWith(
                 'Message publishing failed',
-                {
-                    message: testMessage,
-                    error: JSON.stringify(publishError),
+                expect.objectContaining({
+                    topic: testTopic,
+                    correlationId: testMessage.correlationId,
+                    error: JSON.stringify('String error'),
                     stack: undefined,
-                }
+                })
             );
         });
 
-        it('should handle complex message objects in error logging', () => {
-            const testTopic = 'test.topic';
-            const testMessage = MockedRabbitMQMessage;
-
-            const publishError = new Error('Complex message error');
-
-            mockProducer.publish.mockImplementation(() => {
-                throw publishError;
-            });
-
-            expect(() => {
-                failureLoggerProducer.publish(testTopic, testMessage);
-            }).toThrow('Complex message error');
-
-            expect(MockedRunMQLogger.error).toHaveBeenCalledWith(
-                'Message publishing failed',
-                {
-                    message: testMessage,
-                    error: 'Complex message error',
-                    stack: publishError.stack,
-                }
-            );
-        });
-
-        it('should handle null/undefined message content in error logging', () => {
-            const testTopic = 'test.topic';
-            const testMessage = MockedRabbitMQMessage;
-
-            const publishError = new Error('Null message error');
-
-            mockProducer.publish.mockImplementation(() => {
-                throw publishError;
-            });
-
-            expect(() => {
-                failureLoggerProducer.publish(testTopic, testMessage);
-            }).toThrow('Null message error');
-
-            expect(MockedRunMQLogger.error).toHaveBeenCalledWith(
-                'Message publishing failed',
-                {
-                    message: testMessage,
-                    error: 'Null message error',
-                    stack: publishError.stack,
-                }
-            );
-        });
-
-        it('should preserve original error when rethrowing', () => {
+        it('should preserve original error when rethrowing', async () => {
             const testTopic = 'test.topic';
             const testMessage = MockedRabbitMQMessage;
 
             const originalError = new Error('Original error');
             originalError.name = 'CustomError';
+            mockProducer.publish.mockRejectedValueOnce(originalError);
 
-            mockProducer.publish.mockImplementation(() => {
-                throw originalError;
-            });
-
-            expect(() => {
-                failureLoggerProducer.publish(testTopic, testMessage);
-            }).toThrow(originalError);
+            await expect(failureLoggerProducer.publish(testTopic, testMessage))
+                .rejects.toBe(originalError);
 
             expect(MockedRunMQLogger.error).toHaveBeenCalledWith(
                 'Message publishing failed',
-                {
-                    message: testMessage,
+                expect.objectContaining({
+                    topic: testTopic,
+                    correlationId: testMessage.correlationId,
                     error: 'Original error',
                     stack: originalError.stack,
-                }
+                })
             );
         });
     });

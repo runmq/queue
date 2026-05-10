@@ -6,12 +6,13 @@ export class RunMQFailureLoggerProducer implements RunMQPublisher {
     constructor(private producer: RunMQPublisher, private logger: RunMQLogger) {
     }
 
-    publish(topic: string, message: RabbitMQMessage): void {
+    async publish(topic: string, message: RabbitMQMessage): Promise<void> {
         try {
-            this.producer.publish(topic, message);
+            await this.producer.publish(topic, message);
         } catch (e) {
             this.logger.error('Message publishing failed', {
-                message: message,
+                topic,
+                correlationId: message.correlationId,
                 error: e instanceof Error ? e.message : JSON.stringify(e),
                 stack: e instanceof Error ? e.stack : undefined,
             });

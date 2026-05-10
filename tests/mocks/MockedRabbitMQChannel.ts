@@ -9,12 +9,13 @@ export class MockedRabbitMQChannel implements AMQPChannel {
     deleteExchange = jest.fn();
     checkExchange = jest.fn();
     assertExchange = jest.fn();
-    publish = jest.fn();
+    publish = jest.fn().mockResolvedValue(undefined);
     consume = jest.fn();
     get = jest.fn();
     ack = jest.fn();
     nack = jest.fn();
     prefetch = jest.fn();
+    confirmSelect = jest.fn().mockResolvedValue(undefined);
     close = jest.fn();
     connection: Connection = {} as Connection;
     on = jest.fn();

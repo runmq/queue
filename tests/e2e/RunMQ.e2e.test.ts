@@ -160,12 +160,11 @@ describe('RunMQ E2E Tests', () => {
             await testingConnection.disconnect();
         })
 
-        it("should throw error when publishing invalid message", async () => {
+        it("should reject when publishing invalid message", async () => {
             const runMQ = await RunMQ.start(validConfig, MockedRunMQLogger);
 
-            expect(() => {
-                runMQ.publish("user.created", "invalid message" as any);
-            }).toThrow(RunMQException);
+            await expect(runMQ.publish("user.created", "invalid message" as any))
+                .rejects.toThrow(RunMQException);
 
             await runMQ.disconnect();
         });

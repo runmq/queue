@@ -56,17 +56,25 @@ export class RunMQ {
     }
 
     /**
-     * Publishes a message to the specified topic with an optional correlation ID
+     * Publishes a message to the specified topic with an optional correlation ID.
+     *
+     * If publisher confirms are enabled (`usePublisherConfirms: true` in the
+     * connection config), the returned promise resolves only after RabbitMQ
+     * acknowledges the message; if the broker rejects, the promise rejects.
+     * Otherwise it resolves once the message is flushed to the TCP socket
+     * (fire-and-forget, no delivery guarantee — same behavior as before
+     * publisher confirms were introduced).
+     *
      * @param topic The name of the topic to publish the message to
      * @param message The message payload to be published
      * @param correlationId (Optional) A unique identifier for correlating messages; if not provided, a new UUID will be generated
      */
-    public publish(topic: string, message: Record<string, any>, correlationId: string = RunMQUtils.generateUUID()): void {
+    public async publish(topic: string, message: Record<string, any>, correlationId: string = RunMQUtils.generateUUID()): Promise<void> {
         if (!this.publisher || !this.defaultChannel) {
             throw new RunMQException(Exceptions.NOT_INITIALIZED, {});
         }
         RunMQUtils.assertRecord(message);
-        this.publisher.publish(topic,
+        await this.publisher.publish(topic,
             RabbitMQMessage.from(
                 message,
                 this.defaultChannel,
@@ -76,7 +84,6 @@ export class RunMQ {
         this.logger.info(`Published message`, {
             topic,
             correlationId,
-            message,
         });
     }
 
@@ -137,6 +144,9 @@ export class RunMQ {
         this.defaultChannel = await this.client.getDefaultChannel();
         await this.defaultChannel.assertExchange(Constants.ROUTER_EXCHANGE_NAME, 'direct', {durable: true});
         await this.defaultChannel.assertExchange(Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME, 'direct', {durable: true});
+        if (this.config.usePublisherConfirms) {
+            await this.defaultChannel.confirmSelect();
+        }
         this.publisher = new RunMQPublisherCreator(this.logger).createPublisher();
     }
 }

@@ -39,7 +39,7 @@ export class MockedAMQPChannel implements AMQPChannel {
 
     bindQueue = jest.fn<Promise<void>, [string, string, string, Record<string, any>?]>().mockResolvedValue();
 
-    publish = jest.fn<boolean, [string, string, Buffer, AMQPPublishOptions?]>().mockReturnValue(true);
+    publish = jest.fn<Promise<void>, [string, string, Buffer, AMQPPublishOptions?]>().mockResolvedValue();
 
     consume = jest.fn<Promise<AMQPConsumeInfo>, [string, (msg: ConsumeMessage | null) => void, AMQPConsumeOptions?]>().mockResolvedValue({
         consumerTag: 'test-consumer-tag'
@@ -50,6 +50,8 @@ export class MockedAMQPChannel implements AMQPChannel {
     nack = jest.fn<void, [ConsumeMessage, boolean?, boolean?]>();
 
     prefetch = jest.fn<Promise<void>, [number, boolean?]>().mockResolvedValue();
+
+    confirmSelect = jest.fn<Promise<void>, []>().mockResolvedValue();
 
     close = jest.fn<Promise<void>, []>().mockResolvedValue();
 }

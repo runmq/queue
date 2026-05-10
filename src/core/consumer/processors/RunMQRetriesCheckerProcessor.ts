@@ -22,7 +22,23 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
         } catch (e: unknown) {
             if (this.hasReachedMaxRetries(message)) {
                 this.logMaxRetriesReached(message);
-                this.moveToFinalDeadLetter(message);
+                try {
+                    await this.moveToFinalDeadLetter(message);
+                } catch (publishError) {
+                    // DLQ publish failed (broker rejected, channel closed, etc.).
+                    // Do NOT ack — that would lose the message. nack(false)
+                    // sends it back through the retry pipeline, where it'll
+                    // come right back here on the next attempt with a natural
+                    // backoff (the retry-delay-queue TTL). If the underlying
+                    // failure is transient, the next attempt's DLQ publish
+                    // will succeed.
+                    this.logger.error('Failed to publish to DLQ — message will be redelivered', {
+                        correlationId: message.correlationId,
+                        cause: publishError instanceof Error ? publishError.message : String(publishError),
+                    });
+                    message.nack(false);
+                    return false;
+                }
                 this.acknowledgeMessage(message);
                 return false;
             }
@@ -45,7 +61,7 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
         );
     }
 
-    private moveToFinalDeadLetter(message: RabbitMQMessage) {
+    private async moveToFinalDeadLetter(message: RabbitMQMessage): Promise<void> {
         const originalPayload = this.extractOriginalPayload(message);
         const dlqMessage = new RabbitMQMessage(
             originalPayload,
@@ -55,7 +71,7 @@ export class RunMQRetriesCheckerProcessor implements RunMQConsumer {
             message.amqpMessage,
             message.headers
         );
-        this.DLQPublisher.publish(ConsumerCreatorUtils.getDLQTopicName(this.config.name), dlqMessage)
+        await this.DLQPublisher.publish(ConsumerCreatorUtils.getDLQTopicName(this.config.name), dlqMessage);
     }
 
     private extractOriginalPayload(message: RabbitMQMessage): any {

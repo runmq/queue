@@ -150,8 +150,20 @@ export interface AMQPChannel {
 
     /**
      * Publishes a message to an exchange.
+     *
+     * If `confirmSelect()` was called on this channel, the returned promise
+     * resolves only after the broker acknowledges the message; if the broker
+     * rejects, the promise rejects. Otherwise it resolves once the message is
+     * flushed to the TCP socket.
      */
-    publish(exchange: string, routingKey: string, content: Buffer, options?: AMQPPublishOptions): boolean;
+    publish(exchange: string, routingKey: string, content: Buffer, options?: AMQPPublishOptions): Promise<void>;
+
+    /**
+     * Enables publisher confirms on this channel. After this is called every
+     * `publish()` waits for broker acknowledgement before resolving.
+     * https://www.rabbitmq.com/confirms.html#publisher-confirms
+     */
+    confirmSelect(): Promise<void>;
 
     /**
      * Starts consuming messages from a queue.
@@ -215,6 +227,19 @@ export interface RunMQConnectionConfig {
         username: string;
         password: string;
     };
+    /**
+     * If true, `runMQ.publish()` waits for RabbitMQ to acknowledge each
+     * message before resolving, and rejects on broker error (e.g. mandatory
+     * routing failure, alarm state). Default false — publish resolves once
+     * the message is written to the TCP socket (fire-and-forget).
+     *
+     * Trade-off: confirms add a broker round-trip per publish (typically a
+     * few hundred microseconds), but they're the only way to detect silent
+     * publish failures. DLQ publishes from the consumer chain are *always*
+     * confirmed regardless of this setting — the message-loss risk there is
+     * not negotiable.
+     */
+    usePublisherConfirms?: boolean;
 }
 
 export type SchemaFailureStrategy = 'dlq'
@@ -322,5 +347,5 @@ export interface RunMQConsumer {
 
 
 export interface RunMQPublisher {
-    publish: (topic: string, message: RabbitMQMessage) => void;
+    publish: (topic: string, message: RabbitMQMessage) => Promise<void>;
 }

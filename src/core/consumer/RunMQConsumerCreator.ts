@@ -56,6 +56,11 @@ export class RunMQConsumerCreator {
         const consumerChannel = await this.getProcessorChannel();
         const DLQPublisher = new RunMQPublisherCreator(this.logger).createPublisher(Constants.DEAD_LETTER_ROUTER_EXCHANGE_NAME);
 
+        // Always enable publisher confirms on the consumer channel: DLQ
+        // publishes flow through this channel and we cannot tolerate silent
+        // drops there (issue #19).
+        await consumerChannel.confirmSelect();
+
         await consumerChannel.prefetch(DEFAULTS.PREFETCH_COUNT);
         await consumerChannel.consume(consumerConfiguration.processorConfig.name, async (msg) => {
             if (msg) {
